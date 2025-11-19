@@ -76,8 +76,8 @@ jobs:
             set -euo pipefail
             cd /pdp/PDP
 
-            git checkout -f main
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
 
             echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
 
