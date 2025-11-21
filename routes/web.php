@@ -30,6 +30,14 @@ Route::get('pdps/templates', function () {
 })->middleware(['auth', 'verified'])->name('pdps.templates');
 
 // JSON endpoints for PDPs and Skills (session-authenticated + CSRF)
+// Allow selecting initial professional level BEFORE email verification
+Route::middleware(['auth'])->group(function () {
+    // User professional level (global, based on closed skills across all PDPs)
+    // GET/POST are available for any authenticated (even unverified) user to set initial level right after registration
+    Route::get('/profile/pro-level.json', [UserProfessionalLevelController::class, 'show']);
+    Route::post('/profile/pro-level.json', [UserProfessionalLevelController::class, 'setSelf']);
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // PDPs
     Route::get('/pdps.json', [PdpController::class, 'index']);
@@ -84,8 +92,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // PDP progress by closed skills (Done)
     Route::get('/pdps/{pdp}/progress.json', [PdpProgressController::class, 'show']);
 
-    // User professional level (global, based on closed skills across all PDPs)
-    Route::get('/profile/pro-level.json', [UserProfessionalLevelController::class, 'show']);
+    // Moderator can adjust level for any user (keep verified requirement)
+    Route::put('/users/{user}/pro-level.json', [UserProfessionalLevelController::class, 'setForUser']);
 
     Route::delete('/pdps/{pdp}/skills/{skill}.json', [PdpSkillController::class, 'destroy']);
 });
