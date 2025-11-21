@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, usePage } from '@inertiajs/vue3'
 import Heading from '@/components/Heading.vue'
 import { notifySuccess, notifyError } from '@/composables/useNotify'
 
@@ -68,6 +68,10 @@ async function submitAssign() {
 }
 
 const breadcrumbs = computed(() => [{ title: 'Skill Templates', href: '/pdps/templates' }])
+
+// Moderator flag from Inertia props
+const page = usePage<{ auth: { user: { is_moderator: boolean } } }>()
+const isModerator = computed(() => Boolean(page.props.auth?.user?.is_moderator))
 
 
 // Create Template modal state
@@ -261,7 +265,7 @@ onMounted(loadTemplates)
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-base font-semibold">Skill Templates</h2>
           <div class="flex items-center gap-2">
-            <button class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90" @click="openCreate">+ Create Skill Template</button>
+            <button v-if="isModerator" class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90" @click="openCreate">+ Create Skill Template</button>
           </div>
         </div>
 
@@ -276,8 +280,8 @@ onMounted(loadTemplates)
                   <div class="text-[11px] text-muted-foreground mt-1">{{ t.skills_count }} skills · {{ t.priority }} · {{ t.status }}</div>
                 </div>
                 <div class="flex gap-2">
-                  <button class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" @click="openEdit(t.key)">Edit</button>
-                  <button class="rounded-md border px-3 py-1.5 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground" @click="onDeleteTemplate(t.key)">Delete</button>
+                  <button v-if="isModerator" class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" @click="openEdit(t.key)">Edit</button>
+                  <button v-if="isModerator" class="rounded-md border px-3 py-1.5 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground" @click="onDeleteTemplate(t.key)">Delete</button>
                   <button class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60" :disabled="assigning===t.key" @click="assign(t.key)">Add to my PDP</button>
                 </div>
               </div>

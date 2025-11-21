@@ -34,7 +34,7 @@ const mainNavItems: NavItem[] = [
         icon: FileText,
     },
     {
-        title: 'PDP Templates',
+        title: 'Skill Templates',
         href: '/pdps/templates',
         icon: Layers,
     },

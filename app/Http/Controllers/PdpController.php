@@ -540,6 +540,8 @@ class PdpController extends Controller
     // Create/store a new template in DB.
     public function createTemplate(Request $request)
     {
+        // Only moderators can create templates
+        abort_unless($request->user() && $request->user()->is_moderator, Response::HTTP_FORBIDDEN);
         // Accept the same shape as import/export JSON
         $data = $request->validate([
             'version' => ['nullable','integer'],
@@ -605,13 +607,12 @@ class PdpController extends Controller
     // Trigger synchronization of a DB-backed template across all non-finalized PDPs.
     public function syncTemplate(Request $request, string $key)
     {
+        // Only moderators can trigger sync
+        abort_unless($request->user() && $request->user()->is_moderator, Response::HTTP_FORBIDDEN);
         abort_unless(Str::startsWith($key, 'db-'), Response::HTTP_NOT_FOUND);
         $id = (int) Str::after($key, 'db-');
         $tpl = PdpTemplate::query()->where('id', $id)->first();
         abort_unless($tpl, Response::HTTP_NOT_FOUND);
-
-        // Only template owner can trigger sync for now
-        abort_unless($tpl->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
 
         app(\App\Services\PdpTemplateSyncService::class)->sync($tpl);
         return response()->json(['status' => 'ok']);
@@ -620,13 +621,12 @@ class PdpController extends Controller
     // Get full template payload for editing (owner only)
     public function getTemplate(Request $request, string $key)
     {
+        // Only moderators can view full template payload
+        abort_unless($request->user() && $request->user()->is_moderator, Response::HTTP_FORBIDDEN);
         abort_unless(Str::startsWith($key, 'db-'), Response::HTTP_NOT_FOUND);
         $id = (int) Str::after($key, 'db-');
         $tpl = PdpTemplate::query()->where('id', $id)->first();
         abort_unless($tpl, Response::HTTP_NOT_FOUND);
-
-        // Only owner can read full editable template payload
-        abort_unless($tpl->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
 
         return response()->json([
             'key' => 'db-' . $tpl->id,
@@ -641,13 +641,12 @@ class PdpController extends Controller
     // Update existing DB-backed template (owner only)
     public function updateTemplate(Request $request, string $key)
     {
+        // Only moderators can update templates
+        abort_unless($request->user() && $request->user()->is_moderator, Response::HTTP_FORBIDDEN);
         abort_unless(Str::startsWith($key, 'db-'), Response::HTTP_NOT_FOUND);
         $id = (int) Str::after($key, 'db-');
         $tpl = PdpTemplate::query()->where('id', $id)->first();
         abort_unless($tpl, Response::HTTP_NOT_FOUND);
-
-        // Only owner can update
-        abort_unless($tpl->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
 
         $data = $request->validate([
             'version' => ['nullable','integer'],
@@ -721,13 +720,12 @@ class PdpController extends Controller
     // Delete template (owner only) and prune related PDP links/skills
     public function deleteTemplate(Request $request, string $key)
     {
+        // Only moderators can delete templates
+        abort_unless($request->user() && $request->user()->is_moderator, Response::HTTP_FORBIDDEN);
         abort_unless(Str::startsWith($key, 'db-'), Response::HTTP_NOT_FOUND);
         $id = (int) Str::after($key, 'db-');
         $tpl = PdpTemplate::query()->where('id', $id)->first();
         abort_unless($tpl, Response::HTTP_NOT_FOUND);
-
-        // Only owner can delete template
-        abort_unless($tpl->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
 
         // Collect all template skill keys
         $data = (array) $tpl->data;
