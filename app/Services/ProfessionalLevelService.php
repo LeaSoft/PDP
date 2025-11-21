@@ -47,11 +47,15 @@ class ProfessionalLevelService
         }
 
         $closed = $this->countClosedSkills($user);
+        // Base threshold coming from the user's selected starting level (manual or at registration)
+        $baseThreshold = $this->baseThresholdForUser($user, $levels);
+        // Effective closed = base threshold + actually closed skills after start
+        $effectiveClosed = $baseThreshold + $closed;
 
-        // Find highest level whose threshold <= closed
+        // Find highest level whose threshold <= effective closed value
         $currentIdx = 0;
         foreach ($levels as $i => $lvl) {
-            if ($closed >= (int) $lvl['threshold']) {
+            if ($effectiveClosed >= (int) $lvl['threshold']) {
                 $currentIdx = $i;
             } else {
                 break;
@@ -61,29 +65,43 @@ class ProfessionalLevelService
         $current = $levels[$currentIdx];
         $next = $levels[$currentIdx + 1] ?? null;
 
-        $from = (int) $current['threshold'];
+        // Start progress from the higher of current level threshold and the user's base threshold
+        $from = max((int) $current['threshold'], (int) $baseThreshold);
         $to = $next ? (int) $next['threshold'] : null;
 
         $percent = 100;
         $remaining = null;
         if ($to !== null) {
             $span = max(1, $to - $from);
-            $progress = max(0, min($span, $closed - $from));
+            $progress = max(0, min($span, $effectiveClosed - $from));
             $percent = (int) floor(($progress / $span) * 100);
-            $remaining = max(0, $to - $closed);
+            $remaining = max(0, $to - $effectiveClosed);
         }
 
-        return [
+        $result = [
             'key' => (string) $current['key'],
             'title' => (string) $current['title'],
             'index' => (int) $currentIdx,
             'closed_skills' => (int) $closed,
+            'effective_closed' => (int) $effectiveClosed,
+            'base_threshold' => (int) $baseThreshold,
+            'selected_level_key' => $user->pro_level_key,
             'current_threshold' => $from,
             'next_threshold' => $to,
             'percent' => $percent,
             'remaining_to_next' => $remaining,
             'at_max' => $next === null,
         ];
+
+        // Persist the computed current level into DB so that admins can see actual level.
+        // Do NOT overwrite the starting level (pro_level_key).
+        $newCurrentKey = (string) $current['key'];
+        if ($user->current_level_key !== $newCurrentKey) {
+            // Save quietly to avoid firing observers/listeners for a derived value.
+            $user->forceFill(['current_level_key' => $newCurrentKey])->saveQuietly();
+        }
+
+        return $result;
     }
 
     /**
@@ -104,5 +122,22 @@ class ProfessionalLevelService
         }
         usort($normalized, fn($a, $b) => $a['threshold'] <=> $b['threshold']);
         return $normalized;
+    }
+
+    /**
+     * Get base threshold for the user based on selected starting level key.
+     */
+    public function baseThresholdForUser(User $user, ?array $levels = null): int
+    {
+        $levels = $levels ?? $this->levels();
+        if (!$user->pro_level_key) {
+            return 0;
+        }
+        foreach ($levels as $lvl) {
+            if (($lvl['key'] ?? null) === $user->pro_level_key) {
+                return (int) ($lvl['threshold'] ?? 0);
+            }
+        }
+        return 0;
     }
 }

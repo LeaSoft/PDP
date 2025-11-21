@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import Heading from '@/components/Heading.vue'
 import { notifySuccess, notifyError } from '@/composables/useNotify'
+import { fetchJson } from '@/lib/csrf'
 
 interface TemplateItem {
   key: string
@@ -34,7 +35,7 @@ async function openAssignModal(key: string) {
   // Load my PDPs and filter out completed ones
   try {
     assignLoading.value = true
-    const list: any[] = await http('/pdps.json')
+    const list: any[] = await fetchJson('/pdps.json')
     pdpOptions.value = (Array.isArray(list) ? list : []).filter((p: any) => p && p.status !== 'Done')
   } catch (e: any) {
     notifyError('Failed to load your PDPs: ' + (e?.message || 'Error'))
@@ -53,7 +54,7 @@ async function submitAssign() {
   if (!assignTemplateKey.value || !selectedPdpId.value) return
   assigning.value = assignTemplateKey.value
   try {
-    await http(`/pdps/${selectedPdpId.value}/templates/${encodeURIComponent(assignTemplateKey.value)}/assign.json`, {
+    await fetchJson(`/pdps/${selectedPdpId.value}/templates/${encodeURIComponent(assignTemplateKey.value)}/assign.json`, {
       method: 'POST',
       body: JSON.stringify({})
     })
@@ -110,7 +111,7 @@ async function createTemplate() {
     skills: skillsPayload,
   }
   try {
-    await http('/pdps/templates.json', { method: 'POST', body: JSON.stringify(payload) })
+    await fetchJson('/pdps/templates.json', { method: 'POST', body: JSON.stringify(payload) })
     notifySuccess('Template created')
     showCreateModal.value = false
     await loadTemplates()
@@ -127,7 +128,7 @@ const editTemplate = ref<{ title: string; description?: string; skills: EditSkil
 
 async function openEdit(key: string) {
   try {
-    const data = await http(`/pdps/templates/${encodeURIComponent(key)}.json`)
+    const data = await fetchJson(`/pdps/templates/${encodeURIComponent(key)}.json`)
     const payload = data?.data || {}
     const p = payload.pdp || {}
     const skills: any[] = payload.skills || []
@@ -163,7 +164,7 @@ async function onDeleteTemplate(key: string) {
   const ok = window.confirm('Видалити цей шаблон?\n\nБуде також видалено пов’язані скіли у всіх PDP (окрім тих, що були змінені вручну). Це дію не можна скасувати.')
   if (!ok) return
   try {
-    await http(`/pdps/templates/${encodeURIComponent(key)}.json`, { method: 'DELETE' })
+    await fetchJson(`/pdps/templates/${encodeURIComponent(key)}.json`, { method: 'DELETE' })
     notifySuccess('Template deleted')
     await loadTemplates()
   } catch (e: any) {
@@ -201,7 +202,7 @@ async function saveEdit() {
     skills: skillsPayload,
   }
   try {
-    await http(`/pdps/templates/${encodeURIComponent(editingKey.value)}.json`, { method: 'PUT', body: JSON.stringify(payload) })
+    await fetchJson(`/pdps/templates/${encodeURIComponent(editingKey.value)}.json`, { method: 'PUT', body: JSON.stringify(payload) })
     notifySuccess('Template updated')
     showEditModal.value = false
     editingKey.value = null
@@ -211,34 +212,12 @@ async function saveEdit() {
   }
 }
 
-const xsrf = () => {
-  try {
-    const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-    return m ? decodeURIComponent(m[1]) : ''
-  } catch { return '' }
-}
-
-async function http(url: string, options: RequestInit = {}) {
-  const isGet = !options.method || options.method.toUpperCase() === 'GET'
-  const headers: HeadersInit = {
-    'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
-    ...(!isGet ? { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf() } : {}),
-    ...(options.headers || {}),
-  }
-  const res = await fetch(url, { credentials: 'same-origin', ...options, headers })
-  if (!res.ok) {
-    const msg = await res.text()
-    throw new Error(msg || `Request failed: ${res.status}`)
-  }
-  if (res.status === 204) return null
-  return res.json()
-}
+// All requests use global fetchJson wrapper (Sanctum + XSRF)
 
 async function loadTemplates() {
   loading.value = true
   try {
-    templates.value = await http('/pdps/templates.json')
+    templates.value = await fetchJson('/pdps/templates.json')
   } catch (e: any) {
     notifyError('Failed to load templates: ' + (e?.message || 'Error'))
   } finally {

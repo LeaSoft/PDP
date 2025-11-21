@@ -22,6 +22,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_moderator',
+        'pro_level_key',
+        'current_level_key',
     ];
 
     /**

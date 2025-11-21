@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import { fetchJson } from '@/lib/csrf'
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -12,27 +13,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Small helper: read XSRF token cookie
-function xsrf(): string {
-  try {
-    const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-    return m ? decodeURIComponent(m[1]) : ''
-  } catch { return '' }
-}
-
-async function http(url: string, options: RequestInit = {}) {
-  const isGet = !options.method || options.method.toUpperCase() === 'GET'
-  const headers: HeadersInit = {
-    'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
-    ...(!isGet ? { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf() } : {}),
-    ...(options.headers || {}),
-  }
-  const res = await fetch(url, { credentials: 'same-origin', ...options, headers })
-  if (!res.ok) throw new Error(await res.text())
-  if (res.status === 204) return null
-  return res.json()
-}
+// All requests go through shared CSRF/Sanctum helper
 
 function formatKyivDateTime(input?: string | number | Date): string {
   if (!input) return ''
@@ -68,7 +49,7 @@ async function loadOverview() {
   overviewLoading.value = true
   overviewError.value = ''
   try {
-    overview.value = await http('/dashboard/pdps/overview.json')
+    overview.value = await fetchJson('/dashboard/pdps/overview.json')
   } catch (e: any) {
     overviewError.value = e?.message || 'Failed to load overview'
     overview.value = []
@@ -95,7 +76,7 @@ async function loadPending() {
   loading.value = true
   error.value = ''
   try {
-    pending.value = await http('/dashboard/pending-approvals.json')
+    pending.value = await fetchJson('/dashboard/pending-approvals.json')
   } catch (e: any) {
     error.value = e?.message || 'Failed to load pending approvals'
     pending.value = []
@@ -143,7 +124,7 @@ async function loadProLevel() {
   proLevelLoading.value = true
   proLevelError.value = ''
   try {
-    proLevel.value = await http('/profile/pro-level.json')
+    proLevel.value = await fetchJson('/profile/pro-level.json')
   } catch (e: any) {
     proLevelError.value = e?.message || 'Failed to load level'
     proLevel.value = null
@@ -155,8 +136,8 @@ async function loadProLevel() {
 async function loadPdps() {
   try {
     const [own, shared] = await Promise.all([
-      http('/pdps.json'),
-      http('/pdps.shared.json').catch(() => []),
+      fetchJson('/pdps.json'),
+      fetchJson('/pdps.shared.json').catch(() => []),
     ])
     const map = new Map<number, PdpOption>()
     for (const it of own || []) map.set(it.id, { id: it.id, title: it.title })
@@ -175,7 +156,7 @@ async function loadSummary() {
   summaryLoading.value = true
   summaryError.value = ''
   try {
-    summary.value = await http(`/dashboard/pdps/${selectedPdpId.value}/summary.json`)
+    summary.value = await fetchJson(`/dashboard/pdps/${selectedPdpId.value}/summary.json`)
   } catch (e: any) {
     summaryError.value = e?.message || 'Failed to load summary'
     summary.value = { totalCriteria: 0, approvedCount: 0, pendingCount: 0, wins: [], skills: [] }
@@ -186,7 +167,17 @@ async function loadSummary() {
 
 watch(selectedPdpId, () => { loadSummary() })
 
-onMounted(() => { loadOverview(); loadPending(); loadProLevel(); loadPdps().then(() => { loadSummary() }) })
+// Auto-refresh professional level widget when user selects level in modal
+function onProLevelUpdated() { loadProLevel() }
+
+onMounted(() => {
+  window.addEventListener('pro-level:updated', onProLevelUpdated)
+  loadOverview(); loadPending(); loadProLevel(); loadPdps().then(() => { loadSummary() })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('pro-level:updated', onProLevelUpdated)
+})
 </script>
 
 <template>

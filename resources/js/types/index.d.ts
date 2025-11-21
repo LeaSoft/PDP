@@ -33,6 +33,8 @@ export interface User {
     avatar?: string;
     email_verified_at: string | null;
     is_moderator: boolean;
+    pro_level_key: string | null;
+    current_level_key: string | null;
     created_at: string;
     updated_at: string;
 }
