@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 cd /var/www/html
 
@@ -7,7 +7,6 @@ cd /var/www/html
 
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 touch storage/logs/laravel.log
-
 chmod -R u+rwX,g+rwX storage bootstrap/cache || true
 
 if [ ! -d vendor ]; then

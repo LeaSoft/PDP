@@ -1,13 +1,22 @@
-name: Deployment
+name: 🚀 Deployment
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: deployment-main
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_PHP: leasoft/pdp-php
+  IMAGE_NAME_NGINX: leasoft/pdp-nginx
+
 jobs:
   build-and-push:
-    name: Build & Push images to GHCR
+    name: 🏗️ Build & Push images to GHCR
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,17 +26,17 @@ jobs:
       sha: ${{ steps.out.outputs.sha }}
 
     steps:
-      - name: Checkout
+      - name: 🧾 Checkout repository
         uses: actions/checkout@v5
 
-      - name: Log in to GHCR
+      - name: 🔐 Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push PHP
+      - name: 🐘 Build & Push PHP image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -35,13 +44,13 @@ jobs:
           target: prod
           push: true
           tags: |
-            ghcr.io/leasoft/pdp-php:${{ github.sha }}
-            ghcr.io/leasoft/pdp-php:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PHP }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PHP }}:latest
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-      - name: Build & Push Nginx
+      - name: 🌐 Build & Push Nginx image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -49,23 +58,24 @@ jobs:
           target: nginx
           push: true
           tags: |
-            ghcr.io/leasoft/pdp-nginx:${{ github.sha }}
-            ghcr.io/leasoft/pdp-nginx:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_NGINX }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_NGINX }}:latest
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-      - name: Set outputs
+      - name: 📤 Set outputs
         id: out
-        run: echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+        run: echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
   deploy:
-    name: Deploy
+    name: 🚢 Deploy to server
     runs-on: ubuntu-latest
     needs: build-and-push
+    if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: SSH deploy
+      - name: 🛰️ SSH deploy
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -74,16 +84,27 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             set -euo pipefail
+
+            echo "📂 Switching to project directory..."
             cd /pdp/PDP
 
+            echo "🔄 Updating repository..."
             git fetch origin main
             git reset --hard origin/main
 
-            echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
+            echo "🔐 Logging in to GHCR..."
+            echo "${{ secrets.CR_PAT }}" | docker login ${{ env.REGISTRY }} -u ${{ secrets.GHCR_USER }} --password-stdin
 
+            echo "🏷️ Using image tag from build job..."
             export IMAGE_TAG="${{ needs.build-and-push.outputs.sha }}"
 
+            echo "📥 Pulling latest images..."
             docker compose -f docker-compose.prod.yaml pull
+
+            echo "🚀 Restarting services..."
             docker compose -f docker-compose.prod.yaml up -d
 
+            echo "🧹 Cleaning up old Docker images..."
             docker image prune -f
+
+            echo "✅ Deployment finished!"
