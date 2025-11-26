@@ -11,19 +11,26 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_PHP: leasoft/pdp-php
-  IMAGE_NAME_NGINX: leasoft/pdp-nginx
 
 jobs:
-  build-and-push:
+  build:
     name: 🏗️ Build & Push images to GHCR
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
-    outputs:
-      sha: ${{ steps.out.outputs.sha }}
+    strategy:
+      matrix:
+        include:
+          - id: php
+            target: prod
+            image: leasoft/pdp-php
+            cache_scope: pdp-php
+          - id: nginx
+            target: nginx
+            image: leasoft/pdp-nginx
+            cache_scope: pdp-nginx
 
     steps:
       - name: 🧾 Checkout repository
@@ -39,52 +46,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🐘 Build & Push PHP (amd64)
+      - name: 📦 Build & Push ${{ matrix.id }} (amd64)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/Dockerfile
-          target: prod
+          target: ${{ matrix.target }}
           push: true
           platforms: linux/amd64
           provenance: false
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PHP }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PHP }}:latest
+            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ matrix.image }}:latest
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
-          cache-from: type=gha,scope=pdp-php
-          cache-to: type=gha,mode=max,scope=pdp-php
-
-      - name: 🌐 Build & Push Nginx (amd64)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./docker/Dockerfile
-          target: nginx
-          push: true
-          platforms: linux/amd64
-          provenance: false
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_NGINX }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_NGINX }}:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
-          cache-from: type=gha,scope=pdp-nginx
-          cache-to: type=gha,mode=max,scope=pdp-nginx
-
-      - name: 📤 Set outputs
-        id: out
-        run: echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
   deploy:
     name: 🚢 Deploy to server
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: build
     if: github.ref == 'refs/heads/main'
 
     steps:
@@ -108,8 +92,8 @@ jobs:
             echo "🔐 Logging in to GHCR..."
             echo "${{ secrets.CR_PAT }}" | docker login ${{ env.REGISTRY }} -u ${{ secrets.GHCR_USER }} --password-stdin
 
-            echo "🏷️ Using image tag from build job..."
-            export IMAGE_TAG="${{ needs.build-and-push.outputs.sha }}"
+            echo "🏷️ Using image tag from build..."
+            export IMAGE_TAG="${{ github.sha }}"
 
             echo "📥 Pulling latest images..."
             docker compose -f docker-compose.prod.yaml pull
@@ -125,7 +109,7 @@ jobs:
   cleanup:
     name: 🧹 Cleanup GHCR (keep last 10)
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: build
 
     env:
       GH_TOKEN: ${{ github.token }}
