@@ -119,3 +119,33 @@ jobs:
             docker image prune -f
 
             echo "✅ Deployment finished!"
+
+  cleanup:
+    name: 🧹 Cleanup GHCR (keep last 20)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    strategy:
+      matrix:
+        package: [pdp-php, pdp-nginx]
+
+    steps:
+      - name: 🔐 Auth GH CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | gh auth login --with-token
+
+      - name: 🗑 Remove old image versions (keep 20)
+        env:
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ matrix.package }}
+        run: |
+          echo "📦 Cleaning $PACKAGE…"
+
+          # Get all version IDs (newest → oldest)
+          gh api "/orgs/$OWNER/packages/container/$PACKAGE/versions" --jq '.[].id' \
+          | tail -n +21 \
+          | xargs -r -I{} gh api --method DELETE "/orgs/$OWNER/packages/container/$PACKAGE/versions/{}"
+
+          echo "✅ Cleanup finished for $PACKAGE"
