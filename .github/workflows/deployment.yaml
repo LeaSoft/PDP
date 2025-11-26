@@ -47,6 +47,7 @@ jobs:
           target: prod
           push: true
           platforms: linux/amd64
+          provenance: false
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PHP }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PHP }}:latest
@@ -65,6 +66,7 @@ jobs:
           target: nginx
           push: true
           platforms: linux/amd64
+          provenance: false
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_NGINX }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_NGINX }}:latest
@@ -133,17 +135,16 @@ jobs:
       - name: 🔐 Auth GH CLI
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "$GH_TOKEN" | gh auth login --with-token
+        run: gh auth setup-git
 
       - name: 🗑 Remove old image versions (keep 20)
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           PACKAGE: ${{ matrix.package }}
         run: |
           echo "📦 Cleaning $PACKAGE…"
 
-          # Get all version IDs (newest → oldest)
           gh api "/orgs/$OWNER/packages/container/$PACKAGE/versions" --jq '.[].id' \
           | tail -n +21 \
           | xargs -r -I{} gh api --method DELETE "/orgs/$OWNER/packages/container/$PACKAGE/versions/{}"
