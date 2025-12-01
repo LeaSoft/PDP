@@ -1,4 +1,4 @@
-name: 🚀 Deployment
+name: 🚀 PDP | Deployment & Security
 
 on:
   push:
@@ -14,11 +14,8 @@ env:
 
 jobs:
   build:
-    name: 🏗️ Build & Push images to GHCR
+    name: 🐳 Images | Build & push (${{ matrix.id }})
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     strategy:
       matrix:
@@ -32,21 +29,25 @@ jobs:
             image: leasoft/pdp-nginx
             cache_scope: pdp-nginx
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: 🧾 Checkout repository
+      - name: 📥 Repo | Checkout
         uses: actions/checkout@v5
 
-      - name: 🧱 Set up Docker Buildx
+      - name: ⚙️ Docker | Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔐 Log in to GHCR
+      - name: 🔐 Registry | Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📦 Build & Push ${{ matrix.id }} (amd64)
+      - name: 🧱 Image | Build & push (${{ matrix.id }}) (amd64)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -66,7 +67,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
   trivy-scan:
-    name: 🔍 Trivy scan
+    name: 🔍 Security | Trivy scan & upload SARIF
     runs-on: ubuntu-latest
     needs: build
 
@@ -86,36 +87,36 @@ jobs:
       security-events: write
 
     steps:
-      - name: 🔐 Log in to GHCR
+      - name: 🔐 Registry | Log in to GHCR (read)
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🧪 Run Trivy vulnerability scanner
+      - name: 🧪 Security | Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.0
         with:
-          image-ref: ghcr.io/${{ matrix.image }}:latest
-          format: 'sarif'
+          image-ref: ${{ env.REGISTRY }}/${{ matrix.image }}:latest
+          format: sarif
           output: trivy-${{ matrix.id }}.sarif
           ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
+          severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
 
-      - name: 📤 Upload SARIF to GitHub Code Scanning
+      - name: 📎 Security | Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-${{ matrix.id }}.sarif
 
   deploy:
-    name: 🚢 Deploy to server
+    name: 🚢 Prod | Deploy to server
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: 🛰️ SSH deploy
+      - name: 🔐 SSH | Deploy to PROD
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -125,32 +126,32 @@ jobs:
           script: |
             set -euo pipefail
 
-            echo "📂 Switching to project directory..."
+            echo "📂 Repo | Switch to project directory..."
             cd /pdp/PDP
 
-            echo "🔄 Updating repository..."
+            echo "🔄 Repo | Update from origin/main..."
             git fetch origin main
             git reset --hard origin/main
 
-            echo "🔐 Logging in to GHCR..."
+            echo "🔐 Registry | Log in to GHCR..."
             echo "${{ secrets.CR_PAT }}" | docker login ${{ env.REGISTRY }} -u ${{ secrets.GHCR_USER }} --password-stdin
 
-            echo "🏷️ Using image tag from build..."
+            echo "🏷️ Image | Using tag from build..."
             export IMAGE_TAG="${{ github.sha }}"
 
-            echo "📥 Pulling latest images..."
+            echo "📥 Compose | Pull latest images..."
             docker compose -f docker-compose.prod.yaml pull
 
-            echo "🚀 Restarting services..."
+            echo "🚀 Compose | Restart services..."
             docker compose -f docker-compose.prod.yaml up -d
 
-            echo "🧹 Cleaning up old Docker images..."
+            echo "🧹 Docker | Prune old images..."
             docker image prune -f
 
-            echo "✅ Deployment finished!"
+            echo "✅ Prod | Deployment finished"
 
   cleanup:
-    name: 🧹 Cleanup GHCR (keep last 10)
+    name: 🧹 Registry | Cleanup GHCR (keep last 10)
     runs-on: ubuntu-latest
     needs: build
 
@@ -162,17 +163,19 @@ jobs:
         package: [pdp-php, pdp-nginx]
 
     steps:
-      - name: 🔐 Auth GH CLI
+      - name: 🔐 GH CLI | Auth
         run: gh auth setup-git
 
-      - name: 🗑 Cleanup ${{ matrix.package }}
+      - name: 🧹 Registry | Cleanup ${{ matrix.package }}
         env:
           OWNER: ${{ github.repository_owner }}
           PACKAGE: ${{ matrix.package }}
         run: |
+          echo "🧩 Package: $PACKAGE"
+
           gh api --paginate "/orgs/$OWNER/packages/container/$PACKAGE/versions?per_page=100" \
           | jq -r 'sort_by(.created_at) | reverse | .[].id' \
           | tail -n +11 \
           | xargs -r -I{} gh api --method DELETE "/orgs/$OWNER/packages/container/$PACKAGE/versions/{}"
 
-          echo "✅ Done: $PACKAGE"
+          echo "✅ Cleanup finished for $PACKAGE"
