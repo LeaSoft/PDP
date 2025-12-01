@@ -1,49 +1,34 @@
 # ======================
-# PHP-FPM base image
+# Base PHP-FPM image
 # ======================
 FROM php:8.2-fpm AS base
 
 WORKDIR /var/www/html
 
-# System deps, PHP extensions, Composer, app user
+# System packages, PHP extensions, user, FPM config, cleanup
 RUN set -eux \
- # Install required system packages
+ # Install system dependencies required for PHP and Laravel
  && apt-get update \
  && apt-get install -y --no-install-recommends \
-    git \
-    unzip \
-    curl \
-    ca-certificates \
-    libzip-dev \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libpq-dev \
-    pkg-config \
-    gnupg \
-    bash \
- # Configure + install PHP extensions
+    git unzip curl ca-certificates \
+    libzip-dev libpng-dev libonig-dev libxml2-dev \
+    libpq-dev pkg-config gnupg bash \
+ # Enable required PHP extensions
  && docker-php-ext-configure zip \
  && docker-php-ext-install -j"$(nproc)" \
-    pdo \
-    pdo_mysql \
-    pdo_pgsql \
-    zip \
-    bcmath \
-    exif \
-    pcntl \
-    gd \
- # Create non-root application user
+    pdo pdo_mysql pdo_pgsql zip bcmath exif pcntl gd \
+ # Create non-root user "app"
  && groupadd -g 1000 app \
  && useradd -u 1000 -g 1000 -m -s /bin/bash app \
- # Update php-fpm pool to run as "app" user
+ # Configure PHP-FPM to run under "app"
  && sed -ri 's/^user = .*/user = app/; s/^group = .*/group = app/' /usr/local/etc/php-fpm.d/www.conf \
  && sed -ri 's@^;?listen.owner = .*@listen.owner = app@; s@^;?listen.group = .*@listen.group = app@; s@^;?listen.mode = .*@listen.mode = 0660@' /usr/local/etc/php-fpm.d/www.conf \
- # Cleanup to reduce image size
+ # Remove APT leftovers
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Composer from official image
+
+# Composer binary
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # ======================
@@ -51,7 +36,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 # ======================
 FROM base AS dev
 
-# Node.js
+# Node.js for frontend tooling
 RUN set -eux \
  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get update \
@@ -59,7 +44,7 @@ RUN set -eux \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Dev entrypoint
+# Entrypoint for development mode
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
@@ -76,16 +61,14 @@ FROM dev AS assets
 WORKDIR /var/www/html
 USER 1000:1000
 
-# PHP & Node deps
+# Install PHP + Node dependencies
 COPY --chown=app:app composer.* package*.json ./
 RUN set -eux \
- && composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-progress \
+ && composer install --no-dev --prefer-dist --no-scripts --no-progress \
  && (npm ci --no-audit --no-fund || npm i)
 
-# App code
+# Copy code and build frontend
 COPY --chown=app:app . .
-
-# Build
 RUN set -eux \
  && composer dump-autoload --optimize \
  && { php artisan package:discover --ansi || true; } \
@@ -99,13 +82,13 @@ FROM base AS prod
 WORKDIR /var/www/html
 USER 1000:1000
 
-# App code
+# Copy application
 COPY --chown=app:app . .
 
-# Vendor from assets build image
+# Copy vendors from assets stage
 COPY --from=assets --chown=app:app /var/www/html/vendor /var/www/html/vendor
 
-# Laravel setup
+# Laravel runtime setup
 RUN set -eux \
  && rm -f public/hot \
  && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
@@ -114,14 +97,16 @@ RUN set -eux \
  && composer dump-autoload --optimize \
  && { php artisan package:discover --ansi || true; }
 
-# Built frontend assets from assets stage
+# Copy built assets
 COPY --from=assets --chown=app:app /var/www/html/public/build /var/www/html/public/build
 
 # ======================
-# Nginx web server
+# Nginx image
 # ======================
 FROM nginx:alpine AS nginx
 
-# Serve Laravel public/ via Nginx & Nginx config
+# Copy public assets
 COPY --from=prod /var/www/html/public /var/www/html/public
+
+# Nginx config
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf

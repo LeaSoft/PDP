@@ -1,29 +1,33 @@
 # =========================================
-# Core directories not needed in build
+# Unnecessary build directories
 # =========================================
 node_modules
 vendor
 
-# Laravel cached/generated content
+# =========================================
+# Laravel generated/cache files
+# =========================================
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 
-# Public temporary files
+# =========================================
+# Temporary public assets
+# =========================================
 public/hot
 public/storage
 public/build
 
 # =========================================
-# Local environment & secrets
+# Local environment files
 # =========================================
 .env
 .env.*
 !.env.example
 
 # =========================================
-# Docker-related
+# Docker-related files not needed in image
 # =========================================
 .dockerignore
 docker-compose.yml
@@ -32,7 +36,7 @@ docker-compose.yaml
 docker-compose.prod.yaml
 
 # =========================================
-# IDE / editor metadata
+# Editor/IDE metadata
 # =========================================
 .vscode
 .idea
@@ -40,13 +44,13 @@ docker-compose.prod.yaml
 *.swo
 
 # =========================================
-# OS files
+# OS metadata
 # =========================================
 .DS_Store
 Thumbs.db
 
 # =========================================
-# Git
+# Git metadata
 # =========================================
 .git
 .gitignore
@@ -58,7 +62,7 @@ Thumbs.db
 tests
 
 # =========================================
-# Misc local config
+# Local logs and temp files
 # =========================================
 *.log
 *.tmp
