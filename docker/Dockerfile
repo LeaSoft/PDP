@@ -5,7 +5,7 @@ FROM php:8.2-fpm AS base
 
 WORKDIR /var/www/html
 
-# System deps, PHP extensions, app user, PHP-FPM config
+# System deps, PHP extensions, Composer, app user
 RUN set -eux \
  # Install required system packages
  && apt-get update \
@@ -19,7 +19,6 @@ RUN set -eux \
     libonig-dev \
     libxml2-dev \
     libpq-dev \
-    libsqlite3-dev \
     pkg-config \
     gnupg \
     bash \
@@ -29,7 +28,6 @@ RUN set -eux \
     pdo \
     pdo_mysql \
     pdo_pgsql \
-    pdo_sqlite \
     zip \
     bcmath \
     exif \
@@ -42,10 +40,10 @@ RUN set -eux \
  && sed -ri 's/^user = .*/user = app/; s/^group = .*/group = app/' /usr/local/etc/php-fpm.d/www.conf \
  && sed -ri 's@^;?listen.owner = .*@listen.owner = app@; s@^;?listen.group = .*@listen.group = app@; s@^;?listen.mode = .*@listen.mode = 0660@' /usr/local/etc/php-fpm.d/www.conf \
  # Cleanup to reduce image size
- && apt-get purge -y --auto-remove gnupg pkg-config \
+ && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Composer binary from official image
+# Composer from official image
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # ======================
@@ -58,10 +56,11 @@ RUN set -eux \
  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get update \
  && apt-get install -y --no-install-recommends nodejs \
+ && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Dev entrypoint
-COPY --chown=app:app docker/entrypoint.sh /entrypoint.sh
+COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 USER 1000:1000
@@ -78,17 +77,17 @@ WORKDIR /var/www/html
 USER 1000:1000
 
 # PHP & Node deps
-COPY --chown=app:app composer.json composer.lock package*.json ./
+COPY --chown=app:app composer.* package*.json ./
 RUN set -eux \
  && composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-progress \
- && (npm ci --no-audit --no-fund || npm i) \
- && composer dump-autoload --optimize
+ && (npm ci --no-audit --no-fund || npm i)
 
 # App code
 COPY --chown=app:app . .
 
-# Build frontend & Laravel caches
+# Build
 RUN set -eux \
+ && composer dump-autoload --optimize \
  && { php artisan package:discover --ansi || true; } \
  && npm run build
 
@@ -100,14 +99,11 @@ FROM base AS prod
 WORKDIR /var/www/html
 USER 1000:1000
 
-# Composer metadata
-COPY --chown=app:app composer.json composer.lock ./
-
-# Reuse vendor from assets stage instead of reinstalling
-COPY --chown=app:app --from=assets /var/www/html/vendor ./vendor
-
 # App code
 COPY --chown=app:app . .
+
+# Vendor from assets build image
+COPY --from=assets --chown=app:app /var/www/html/vendor /var/www/html/vendor
 
 # Laravel setup
 RUN set -eux \
@@ -119,7 +115,7 @@ RUN set -eux \
  && { php artisan package:discover --ansi || true; }
 
 # Built frontend assets from assets stage
-COPY --chown=app:app --from=assets /var/www/html/public/build /var/www/html/public/build
+COPY --from=assets --chown=app:app /var/www/html/public/build /var/www/html/public/build
 
 # ======================
 # Nginx web server
