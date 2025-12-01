@@ -5,10 +5,7 @@ FROM php:8.2-fpm AS base
 
 WORKDIR /var/www/html
 
-# Composer from official image
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
-
-# System deps, PHP extensions, app user
+# System deps, PHP extensions, app user, PHP-FPM config
 RUN set -eux \
  # Install required system packages
  && apt-get update \
@@ -45,8 +42,11 @@ RUN set -eux \
  && sed -ri 's/^user = .*/user = app/; s/^group = .*/group = app/' /usr/local/etc/php-fpm.d/www.conf \
  && sed -ri 's@^;?listen.owner = .*@listen.owner = app@; s@^;?listen.group = .*@listen.group = app@; s@^;?listen.mode = .*@listen.mode = 0660@' /usr/local/etc/php-fpm.d/www.conf \
  # Cleanup to reduce image size
- && apt-get clean \
+ && apt-get purge -y --auto-remove gnupg pkg-config \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Composer binary from official image
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # ======================
 # Development image
@@ -58,12 +58,11 @@ RUN set -eux \
  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get update \
  && apt-get install -y --no-install-recommends nodejs \
- && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Dev entrypoint
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN set -eux && chmod +x /entrypoint.sh
+COPY --chown=app:app docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 USER 1000:1000
 
@@ -78,16 +77,17 @@ FROM dev AS assets
 WORKDIR /var/www/html
 USER 1000:1000
 
-# PHP and Node deps
-COPY --chown=app:app composer.* package*.json ./
+# PHP & Node deps
+COPY --chown=app:app composer.json composer.lock package*.json ./
 RUN set -eux \
  && composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-progress \
- && composer dump-autoload --optimize \
  && (npm ci --no-audit --no-fund || npm i) \
- && npm cache clean --force >/dev/null 2>&1 || true
+ && composer dump-autoload --optimize
 
-# App code and build
+# App code
 COPY --chown=app:app . .
+
+# Build frontend & Laravel caches
 RUN set -eux \
  && { php artisan package:discover --ansi || true; } \
  && npm run build
@@ -100,11 +100,14 @@ FROM base AS prod
 WORKDIR /var/www/html
 USER 1000:1000
 
+# Composer metadata
+COPY --chown=app:app composer.json composer.lock ./
+
+# Reuse vendor from assets stage instead of reinstalling
+COPY --chown=app:app --from=assets /var/www/html/vendor ./vendor
+
 # App code
 COPY --chown=app:app . .
-
-# Vendor from assets stage
-COPY --from=assets --chown=app:app /var/www/html/vendor /var/www/html/vendor
 
 # Laravel setup
 RUN set -eux \
@@ -116,7 +119,7 @@ RUN set -eux \
  && { php artisan package:discover --ansi || true; }
 
 # Built frontend assets from assets stage
-COPY --from=assets --chown=app:app /var/www/html/public/build /var/www/html/public/build
+COPY --chown=app:app --from=assets /var/www/html/public/build /var/www/html/public/build
 
 # ======================
 # Nginx web server
