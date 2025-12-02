@@ -16,7 +16,7 @@ RUN set -eux \
  # Enable required PHP extensions
  && docker-php-ext-configure zip \
  && docker-php-ext-install -j"$(nproc)" \
-    pdo pdo_mysql pdo_pgsql zip bcmath exif pcntl gd \
+    pdo pdo_mysql zip bcmath exif pcntl gd \
  # Create non-root user "app"
  && groupadd -g 1000 app \
  && useradd -u 1000 -g 1000 -m -s /bin/bash app \
@@ -26,7 +26,6 @@ RUN set -eux \
  # Remove APT leftovers
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
 
 # Composer binary
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer

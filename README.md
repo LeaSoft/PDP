@@ -9,7 +9,11 @@ Run Laravel + Vite locally with **Docker** for both dev and production.
 ### ▶ Start
 
 ```bash
-docker compose up -d        # or: docker compose up -d --build
+cp .env.example .env
+```
+
+```bash
+docker compose up -d # or: docker compose up -d --build
 ```
 
 Services:
@@ -37,7 +41,7 @@ Edits are live — no rebuild needed.
 docker compose exec php php artisan migrate
 docker compose exec php composer require <pkg>
 docker compose exec app npm i <pkg> -D
-docker compose down -v    # stop + clear DB
+docker compose down -v # stop + clear DB
 ```
 
 ---
