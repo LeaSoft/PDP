@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
@@ -18,6 +18,9 @@ interface TemplateItem {
 const templates = ref<TemplateItem[]>([]);
 const loading = ref(false);
 const assigning = ref<string | null>(null);
+
+const createSkillsContainer = ref<null | HTMLDivElement>(null);
+const editSkillsContainer = ref<null | HTMLDivElement>(null);
 
 // Assign-to-PDP modal state
 const showAssignModal = ref(false);
@@ -106,12 +109,17 @@ function openCreate() {
     newTemplate.value = { title: '', description: '', skills: [] };
     showCreateModal.value = true;
 }
-function addSkillRow() {
+async function addSkillRow() {
     newTemplate.value.skills.push({
         skill: '',
         description: '',
         criteriaText: '',
     });
+    await nextTick();
+    const container = createSkillsContainer.value;
+    if (container) {
+        container.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 function removeSkillRow(i: number) {
     newTemplate.value.skills.splice(i, 1);
@@ -241,12 +249,17 @@ async function onDeleteTemplate(key: string) {
     }
 }
 
-function addEditSkillRow() {
+async function addEditSkillRow() {
     editTemplate.value.skills.push({
         skill: '',
         description: '',
         criteriaText: '',
     });
+    await nextTick();
+    const container = editSkillsContainer.value;
+    if (container) {
+        container.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 function removeEditSkillRow(i: number) {
     editTemplate.value.skills.splice(i, 1);
@@ -464,12 +477,6 @@ onMounted(loadTemplates);
                                 <label class="block text-xs font-semibold"
                                     >Skill items</label
                                 >
-                                <button
-                                    class="rounded-md border px-2 py-1 text-xs hover:bg-muted"
-                                    @click="addSkillRow"
-                                >
-                                    + Add skill
-                                </button>
                             </div>
                             <div
                                 v-if="newTemplate.skills.length === 0"
@@ -477,57 +484,67 @@ onMounted(loadTemplates);
                             >
                                 No skills yet. Add the first one.
                             </div>
-                            <div
-                                v-for="(s, i) in newTemplate.skills"
-                                :key="i"
-                                class="mb-3 rounded-md border p-3"
-                            >
+                            <div ref="createSkillsContainer">
                                 <div
-                                    class="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2"
+                                    v-for="(s, i) in newTemplate.skills"
+                                    :key="i"
+                                    class="mb-3 rounded-md border p-3"
                                 >
-                                    <div>
-                                        <label
-                                            class="mb-1 block text-xs font-medium"
-                                            >Skill</label
-                                        >
-                                        <input
-                                            v-model="s.skill"
-                                            type="text"
-                                            class="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="e.g. Vue Basics"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label
-                                            class="mb-1 block text-xs font-medium"
-                                            >Description</label
-                                        >
-                                        <input
-                                            v-model="s.description"
-                                            type="text"
-                                            class="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="Optional"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label
-                                        class="mb-1 block text-xs font-medium"
-                                        >Win Criteria (one per line)</label
+                                    <div
+                                        class="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2"
                                     >
-                                    <textarea
-                                        v-model="s.criteriaText"
-                                        rows="3"
-                                        class="w-full rounded-md border px-3 py-2 text-sm"
-                                        placeholder="Explain tasks or acceptance criteria, each on a new line"
-                                    ></textarea>
+                                        <div>
+                                            <label
+                                                class="mb-1 block text-xs font-medium"
+                                                >Skill</label
+                                            >
+                                            <input
+                                                v-model="s.skill"
+                                                type="text"
+                                                class="w-full rounded-md border px-3 py-2 text-sm"
+                                                placeholder="e.g. Vue Basics"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="mb-1 block text-xs font-medium"
+                                                >Description</label
+                                            >
+                                            <input
+                                                v-model="s.description"
+                                                type="text"
+                                                class="w-full rounded-md border px-3 py-2 text-sm"
+                                                placeholder="Optional"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="mb-1 block text-xs font-medium"
+                                            >Win Criteria (one per line)</label
+                                        >
+                                        <textarea
+                                            v-model="s.criteriaText"
+                                            rows="3"
+                                            class="w-full rounded-md border px-3 py-2 text-sm"
+                                            placeholder="Explain tasks or acceptance criteria, each on a new line"
+                                        ></textarea>
+                                    </div>
+                                    <div class="mt-2 flex justify-end">
+                                        <button
+                                            class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                            @click="removeSkillRow(i)"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="mt-2 flex justify-end">
+                                <div class="mt-2 flex justify-center">
                                     <button
-                                        class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                        @click="removeSkillRow(i)"
+                                        class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                                        @click="addSkillRow"
                                     >
-                                        Remove
+                                        + Add skill
                                     </button>
                                 </div>
                             </div>
@@ -600,12 +617,6 @@ onMounted(loadTemplates);
                                 <label class="block text-xs font-semibold"
                                     >Skill items</label
                                 >
-                                <button
-                                    class="rounded-md border px-2 py-1 text-xs hover:bg-muted"
-                                    @click="addEditSkillRow"
-                                >
-                                    + Add skill
-                                </button>
                             </div>
                             <div
                                 v-if="editTemplate.skills.length === 0"
@@ -613,72 +624,82 @@ onMounted(loadTemplates);
                             >
                                 No skills yet. Add the first one.
                             </div>
-                            <div
-                                v-for="(s, i) in editTemplate.skills"
-                                :key="s.key || i"
-                                class="mb-3 rounded-md border p-3"
-                            >
+                            <div ref="editSkillsContainer">
                                 <div
-                                    class="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2"
-                                >
-                                    <div>
-                                        <label
-                                            class="mb-1 block text-xs font-medium"
-                                            >Skill</label
-                                        >
-                                        <input
-                                            v-model="s.skill"
-                                            type="text"
-                                            class="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="e.g. Vue Basics"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label
-                                            class="mb-1 block text-xs font-medium"
-                                            >Description</label
-                                        >
-                                        <input
-                                            v-model="s.description"
-                                            type="text"
-                                            class="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="Optional"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label
-                                        class="mb-1 block text-xs font-medium"
-                                        >Win Criteria (one per line)</label
-                                    >
-                                    <textarea
-                                        v-model="s.criteriaText"
-                                        rows="3"
-                                        class="w-full rounded-md border px-3 py-2 text-sm"
-                                        placeholder="Explain tasks or acceptance criteria, each on a new line"
-                                    ></textarea>
-                                </div>
-                                <div
-                                    class="mt-2 flex items-center justify-between gap-2"
+                                    v-for="(s, i) in editTemplate.skills"
+                                    :key="s.key || i"
+                                    class="mb-3 rounded-md border p-3"
                                 >
                                     <div
-                                        class="text-[11px] text-muted-foreground"
+                                        class="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2"
                                     >
-                                        Order:
-                                        <input
-                                            v-model.number="
-                                                (s as any).order_column
-                                            "
-                                            type="number"
-                                            min="0"
-                                            class="w-16 rounded border px-2 py-1 text-xs"
-                                        />
+                                        <div>
+                                            <label
+                                                class="mb-1 block text-xs font-medium"
+                                                >Skill</label
+                                            >
+                                            <input
+                                                v-model="s.skill"
+                                                type="text"
+                                                class="w-full rounded-md border px-3 py-2 text-sm"
+                                                placeholder="e.g. Vue Basics"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="mb-1 block text-xs font-medium"
+                                                >Description</label
+                                            >
+                                            <input
+                                                v-model="s.description"
+                                                type="text"
+                                                class="w-full rounded-md border px-3 py-2 text-sm"
+                                                placeholder="Optional"
+                                            />
+                                        </div>
                                     </div>
-                                    <button
-                                        class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                        @click="removeEditSkillRow(i)"
+                                    <div>
+                                        <label
+                                            class="mb-1 block text-xs font-medium"
+                                            >Win Criteria (one per line)</label
+                                        >
+                                        <textarea
+                                            v-model="s.criteriaText"
+                                            rows="3"
+                                            class="w-full rounded-md border px-3 py-2 text-sm"
+                                            placeholder="Explain tasks or acceptance criteria, each on a new line"
+                                        ></textarea>
+                                    </div>
+                                    <div
+                                        class="mt-2 flex items-center justify-between gap-2"
                                     >
-                                        Remove
+                                        <div
+                                            class="text-[11px] text-muted-foreground"
+                                        >
+                                            Order:
+                                            <input
+                                                v-model.number="
+                                                    (s as any).order_column
+                                                "
+                                                type="number"
+                                                min="0"
+                                                class="w-16 rounded border px-2 py-1 text-xs"
+                                            />
+                                        </div>
+                                        <button
+                                            class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                            @click="removeEditSkillRow(i)"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-2 flex justify-center">
+                                    <button
+                                        class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                                        @click="addEditSkillRow"
+                                    >
+                                        + Add skill
                                     </button>
                                 </div>
                             </div>
