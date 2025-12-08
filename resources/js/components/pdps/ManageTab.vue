@@ -97,8 +97,11 @@ function onEmailInput(v: string) {
             class="relative mb-4 min-h-[80px]"
             id="pdp-share"
         >
-            <div class="flex items-center gap-2">
-                <div class="relative" ref="userPickerRef">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div
+                    ref="userPickerRef"
+                    class="relative w-full sm:max-w-xs"
+                >
                     <input
                         :value="curatorEmail"
                         @input="
@@ -126,7 +129,7 @@ function onEmailInput(v: string) {
                         "
                         type="text"
                         placeholder="Enter curator email or name"
-                        class="w-64 rounded border px-2 py-1 text-sm"
+                        class="w-full rounded border px-2 py-1 text-sm"
                         autocomplete="off"
                         autocapitalize="none"
                         autocorrect="off"
@@ -136,7 +139,7 @@ function onEmailInput(v: string) {
                     />
                     <ul
                         v-if="showUserDropdown"
-                        class="absolute z-50 mt-1 max-h-56 w-[22rem] overflow-auto rounded-md border bg-background shadow"
+                        class="absolute z-50 mt-1 max-h-56 w-full sm:w-[22rem] overflow-auto rounded-md border bg-background shadow"
                     >
                         <li
                             v-for="u in userOptions"
@@ -161,29 +164,31 @@ function onEmailInput(v: string) {
                         </li>
                     </ul>
                 </div>
-                <button
-                    class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
-                    @click="emit('assignCurator')"
-                >
-                    Assign curator
-                </button>
-                <button
-                    class="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
-                    title="Share a copy of this PDP to the selected user"
-                    @click="emit('shareToUser')"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        class="h-3.5 w-3.5"
+                <div class="flex flex-wrap gap-2 sm:flex-nowrap">
+                    <button
+                        class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                        @click="emit('assignCurator')"
                     >
-                        <path
-                            d="M15 8a3 3 0 10-2.83-4H12a3 3 0 102.17 5.03l-6.1 3.05a3 3 0 100 1.84l6.1 3.05A3 3 0 1015 12a3 3 0 00-2.17.97l-6.1-3.05A3 3 0 0012 8h.17A2.99 2.99 0 0015 8z"
-                        />
-                    </svg>
-                    <span>Share PDP</span>
-                </button>
+                        Assign curator
+                    </button>
+                    <button
+                        class="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                        title="Share a copy of this PDP to the selected user"
+                        @click="emit('shareToUser')"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-3.5 w-3.5"
+                        >
+                            <path
+                                d="M15 8a3 3 0 10-2.83-4H12a3 3 0 102.17 5.03l-6.1 3.05a3 3 0 100 1.84l6.1 3.05A3 3 0 1015 12a3 3 0 00-2.17.97l-6.1-3.05A3 3 0 0012 8h.17A2.99 2.99 0 0015 8z"
+                            />
+                        </svg>
+                        <span>Share PDP</span>
+                    </button>
+                </div>
             </div>
             <div v-if="curators.length" class="mt-2 flex flex-wrap gap-2">
                 <span
