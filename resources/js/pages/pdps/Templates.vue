@@ -342,7 +342,7 @@ onMounted(loadTemplates);
     <Head title="Skill Templates" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+            class="flex flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
             <Heading
                 title="Skill Templates"
