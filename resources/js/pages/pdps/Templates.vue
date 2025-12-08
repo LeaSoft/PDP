@@ -258,10 +258,10 @@ onMounted(loadTemplates)
                   <div v-if="t.description" class="text-xs text-muted-foreground mt-0.5">{{ t.description }}</div>
                   <div class="text-[11px] text-muted-foreground mt-1">{{ t.skills_count }} skills · {{ t.priority }} · {{ t.status }}</div>
                 </div>
-                <div class="flex gap-2">
-                  <button v-if="isModerator" class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" @click="openEdit(t.key)">Edit</button>
-                  <button v-if="isModerator" class="rounded-md border px-3 py-1.5 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground" @click="onDeleteTemplate(t.key)">Delete</button>
-                  <button class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60" :disabled="assigning===t.key" @click="assign(t.key)">Add to my PDP</button>
+                <div class="flex flex-col items-end gap-2 shrink-0">
+                  <button v-if="isModerator" class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted w-32 text-center" @click="openEdit(t.key)">Edit</button>
+                  <button v-if="isModerator" class="rounded-md border px-3 py-1.5 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground w-32 text-center" @click="onDeleteTemplate(t.key)">Delete</button>
+                  <button class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60 w-32 text-center" :disabled="assigning===t.key" @click="assign(t.key)">Add to my PDP</button>
                 </div>
               </div>
             </div>
