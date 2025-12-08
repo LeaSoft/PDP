@@ -341,9 +341,7 @@ onMounted(loadTemplates);
 <template>
     <Head title="Skill Templates" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div
-            class="flex flex-col gap-4 overflow-x-auto rounded-xl p-4"
-        >
+        <div class="flex flex-col gap-4 rounded-xl p-4">
             <Heading
                 title="Skill Templates"
                 description="Skill template catalogue. Add the necessary skills to your PDP, edit or delete templates."
