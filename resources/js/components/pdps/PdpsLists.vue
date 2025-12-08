@@ -36,7 +36,7 @@ const hasSharedPdps = computed(() => props.sharedPdps.length > 0)
 </script>
 
 <template>
-  <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+  <div class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border h-auto">
     <div class="mb-3 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <h2 class="text-base font-semibold flex items-center gap-2">
