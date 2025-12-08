@@ -431,7 +431,7 @@ onMounted(loadTemplates);
             <!-- Create Template Modal -->
             <div
                 v-if="showCreateModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto"
             >
                 <div
                     class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"
@@ -571,7 +571,7 @@ onMounted(loadTemplates);
             <!-- Edit Template Modal -->
             <div
                 v-if="showEditModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto"
             >
                 <div
                     class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"
@@ -726,7 +726,7 @@ onMounted(loadTemplates);
             <!-- Assign Template Skills to PDP Modal -->
             <div
                 v-if="showAssignModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto"
             >
                 <div
                     class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"
