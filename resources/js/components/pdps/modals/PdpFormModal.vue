@@ -16,8 +16,8 @@ function save() { emit('save', { ...localForm }) }
 </script>
 
 <template>
-  <div v-if="props.open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-    <div class="w-full max-w-2xl rounded-xl border border-border bg-background p-4 shadow-xl">
+  <div v-if="props.open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg bg-background p-4 shadow-xl">
       <div class="mb-3 flex items-center justify-between">
         <h3 class="text-base font-semibold">{{ props.editingId ? 'Edit PDP' : 'Create PDP' }}</h3>
         <button class="rounded p-1 text-muted-foreground hover:bg-muted" @click="close">✕</button>
