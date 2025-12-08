@@ -26,6 +26,14 @@ watch(() => props.open, (v) => {
   if (v) Object.assign(localForm, props.form)
 })
 
+watch(() => props.open, (isOpen) => {
+  if (isOpen) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
 function close() { emit('update:open', false) }
 function save() { emit('save', { ...localForm }) }
 </script>
