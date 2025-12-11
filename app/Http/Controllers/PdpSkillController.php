@@ -8,6 +8,7 @@ use App\Models\PdpSkillCriterionProgress;
 use App\Services\PdpSkillService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Services\NotificationService;
 
 class PdpSkillController extends Controller
 {
@@ -134,6 +135,19 @@ class PdpSkillController extends Controller
         abort_unless($skill->pdp_id === $pdp->id, Response::HTTP_FORBIDDEN);
 
         $entry = $this->service->approveProgress($skill, $index, $entry);
+        // Notify PDP owner about approval
+        $userId = $pdp->user_id;
+
+        if ($userId) {
+            app(NotificationService::class)->send(
+                $userId,
+                'Progress confirmed',
+                "The curator has confirmed your progress in the skill: {$skill->skill}",
+                'success',
+                "/pdps?pdp={$pdp->id}&skill={$skill->id}&criterion={$index}&entry={$entry->id}"
+            );
+        }
+
         return response()->json($entry);
     }
 
@@ -149,6 +163,20 @@ class PdpSkillController extends Controller
         ]);
 
         $entry = $this->service->setProgressCuratorComment($skill, $index, $entry, $data['comment'] ?? null);
+
+        // Send notification to PDP owner
+        $userId = $pdp->user_id;
+
+        if ($userId) {
+            app(NotificationService::class)->send(
+                $userId,
+                'New comment from the curator',
+                "The curator left a comment on the progress: {$skill->skill}",
+                'comment',
+                "/pdps?pdp={$pdp->id}&skill={$skill->id}&criterion={$index}&entry={$entry->id}"
+            );
+        }
+
         return response()->json($entry);
     }
 

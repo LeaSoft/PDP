@@ -3,6 +3,7 @@ import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 import type { BreadcrumbItemType } from '@/types';
+import NotificationBell from '@/components/notifications/NotificationBell.vue';
 
 withDefaults(
     defineProps<{
@@ -26,6 +27,7 @@ withDefaults(
         </div>
         <div class="flex items-center gap-2">
             <ThemeToggle />
+            <NotificationBell />
         </div>
     </header>
 </template>

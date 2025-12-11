@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PdpController;
@@ -96,6 +97,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/users/{user}/pro-level.json', [UserProfessionalLevelController::class, 'setForUser']);
 
     Route::delete('/pdps/{pdp}/skills/{skill}.json', [PdpSkillController::class, 'destroy']);
+
+
+    Route::get('/notifications.unread.json', [NotificationController::class, 'unread']);
+    Route::get('/notifications.json', [NotificationController::class, 'all']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 });
 
 require __DIR__.'/settings.php';
