@@ -135,6 +135,19 @@ class PdpSkillController extends Controller
         abort_unless($skill->pdp_id === $pdp->id, Response::HTTP_FORBIDDEN);
 
         $entry = $this->service->approveProgress($skill, $index, $entry);
+        // Notify PDP owner about approval
+        $userId = $pdp->user_id;
+
+        if ($userId) {
+            app(NotificationService::class)->send(
+                $userId,
+                'Прогрес підтверджено',
+                "Куратор підтвердив ваш прогрес у скілі: {$skill->skill}",
+                'success',
+                "/pdps?pdp={$pdp->id}&skill={$skill->id}&criterion={$index}&entry={$entry->id}"
+            );
+        }
+
         return response()->json($entry);
     }
 
