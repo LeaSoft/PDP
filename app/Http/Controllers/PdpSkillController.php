@@ -8,6 +8,7 @@ use App\Models\PdpSkillCriterionProgress;
 use App\Services\PdpSkillService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Services\NotificationService;
 
 class PdpSkillController extends Controller
 {
@@ -149,6 +150,20 @@ class PdpSkillController extends Controller
         ]);
 
         $entry = $this->service->setProgressCuratorComment($skill, $index, $entry, $data['comment'] ?? null);
+
+        // Send notification to PDP owner
+        $userId = $pdp->user_id;
+
+        if ($userId) {
+            app(NotificationService::class)->send(
+                $userId,
+                'Новий коментар від куратора',
+                "Куратор залишив коментар до прогресу: {$skill->skill}",
+                'info',
+                "/pdps?pdp={$pdp->id}&skill={$skill->id}&criterion={$index}&entry={$entry->id}"
+            );
+        }
+
         return response()->json($entry);
     }
 
