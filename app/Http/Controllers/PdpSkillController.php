@@ -141,8 +141,8 @@ class PdpSkillController extends Controller
         if ($userId) {
             app(NotificationService::class)->send(
                 $userId,
-                'Прогрес підтверджено',
-                "Куратор підтвердив ваш прогрес у скілі: {$skill->skill}",
+                'Progress confirmed',
+                "The curator has confirmed your progress in the skill: {$skill->skill}",
                 'success',
                 "/pdps?pdp={$pdp->id}&skill={$skill->id}&criterion={$index}&entry={$entry->id}"
             );
@@ -170,8 +170,8 @@ class PdpSkillController extends Controller
         if ($userId) {
             app(NotificationService::class)->send(
                 $userId,
-                'Новий коментар від куратора',
-                "Куратор залишив коментар до прогресу: {$skill->skill}",
+                'New comment from the curator',
+                "The curator left a comment on the progress: {$skill->skill}",
                 'info',
                 "/pdps?pdp={$pdp->id}&skill={$skill->id}&criterion={$index}&entry={$entry->id}"
             );
