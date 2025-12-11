@@ -32,4 +32,16 @@ class NotificationController extends Controller
 
         return response()->json(['status' => 'ok']);
     }
+
+    public function markAllRead(Request $request)
+    {
+        Notification::where('user_id', $request->user()->id)
+            ->where('read', 0)
+            ->update([
+                'read'    => 1,
+                'read_at' => now(),
+            ]);
+
+        return response()->json(['status' => 'ok']);
+    }
 }

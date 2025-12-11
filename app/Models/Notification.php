@@ -13,7 +13,8 @@ class Notification extends Model
         'message',
         'type',
         'read',
-        'url'
+        'url',
+        'read_at',
     ];
 
     public function user() {

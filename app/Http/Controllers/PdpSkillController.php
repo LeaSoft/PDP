@@ -172,7 +172,7 @@ class PdpSkillController extends Controller
                 $userId,
                 'New comment from the curator',
                 "The curator left a comment on the progress: {$skill->skill}",
-                'info',
+                'comment',
                 "/pdps?pdp={$pdp->id}&skill={$skill->id}&criterion={$index}&entry={$entry->id}"
             );
         }

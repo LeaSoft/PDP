@@ -102,6 +102,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/notifications.unread.json', [NotificationController::class, 'unread']);
     Route::get('/notifications.json', [NotificationController::class, 'all']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 });
 
 require __DIR__.'/settings.php';
