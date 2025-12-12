@@ -38,6 +38,8 @@ defineProps<{
     curatorEmail: string;
     userOptions: Curator[];
     showUserDropdown: boolean;
+    unseenByCriterion?: Record<string, { ids: number[]; types: Array<'approved' | 'rejected' | 'comment'> }>;
+    unseenTotals?: { approved: number; rejected: number; commented: number };
 }>();
 
 const emit = defineEmits<{
@@ -76,6 +78,28 @@ function onEmailInput(v: string) {
 <template>
     <template v-if="selectedPdp">
         <h3 class="mb-1 text-lg font-semibold">{{ selectedPdp.title }}</h3>
+        <!-- PDP totals for unseen approvals/rejections/comments -->
+        <div v-if="unseenTotals && (unseenTotals.approved || unseenTotals.rejected || unseenTotals.commented)"
+             class="mb-2 flex gap-2 text-xs">
+            <span v-if="unseenTotals.approved" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
+                    <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.414l-7.5 7.5a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.793-6.793a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                {{ unseenTotals.approved }} Approved
+            </span>
+            <span v-if="unseenTotals.rejected" class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm2.828-11.172a1 1 0 00-1.414-1.414L10 6.828 8.586 5.414a1 1 0 00-1.414 1.414L8.586 8 7.172 9.414a1 1 0 101.414 1.414L10 9.414l1.414 1.414a1 1 0 001.414-1.414L11.414 8l1.414-1.172z" clip-rule="evenodd" />
+                </svg>
+                {{ unseenTotals.rejected }} Rejected
+            </span>
+            <span v-if="unseenTotals.commented" class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
+                    <path d="M18 10c0 3.866-3.582 7-8 7a9.225 9.225 0 01-2.9-.46L4 17l.46-3.1A7.827 7.827 0 013 10c0-3.866 3.582-7 8-7s7 3.134 7 7z" />
+                </svg>
+                {{ unseenTotals.commented }} Commented
+            </span>
+        </div>
         <p class="mb-3 text-sm text-muted-foreground">
             {{ selectedPdp.description }}
         </p>
@@ -274,6 +298,14 @@ function onEmailInput(v: string) {
                                                 class="break-words whitespace-normal"
                                                 >{{ c.text }}</span
                                             >
+                                            <!-- attention dot for unseen curator actions for this criterion -->
+                                            <span v-if="unseenByCriterion && unseenByCriterion[`${s.pdp_id}:${s.id}:${i}`]"
+                                                  class="ml-2 inline-flex items-center">
+                                                <span class="relative inline-flex">
+                                                  <span class="absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75 animate-ping"></span>
+                                                  <span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+                                                </span>
+                                            </span>
                                             <span
                                                 v-if="c.comment"
                                                 class="ml-2 shrink-0 text-muted-foreground"
