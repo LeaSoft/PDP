@@ -4,8 +4,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import { fetchJson } from '@/lib/csrf';
-import { notifyError } from '@/composables/useNotify';
-import { ChevronDown, ChevronRight } from 'lucide-vue-next';
+import { notifyError, notifySuccess } from '@/composables/useNotify';
+import { ChevronDown, ChevronRight, Check, X, MessageSquare } from 'lucide-vue-next';
 
 interface Mentee {
     user_id: number;
@@ -37,6 +37,9 @@ const pendingApprovals = ref<PendingApproval[]>([]);
 const loading = ref(false);
 const loadingApprovals = ref(false);
 const error = ref('');
+const processingApproval = ref<number | null>(null);
+const commentingApproval = ref<number | null>(null);
+const commentText = ref<Record<number, string>>({});
 
 const selectedMentee = computed(() => {
     if (!selectedUserId.value) return null;
@@ -174,6 +177,73 @@ function formatDate(dateStr: string): string {
         minute: '2-digit',
         hour12: false,
     }).format(d);
+}
+
+async function approveProgress(approval: PendingApproval) {
+    processingApproval.value = approval.id;
+    try {
+        await fetchJson(
+            `/pdps/${approval.pdp.id}/skills/${approval.skill.id}/criteria/${approval.criterion.index}/progress/${approval.id}/approve.json`,
+            { method: 'POST' }
+        );
+        notifySuccess('Progress approved');
+        // Remove from list and reload
+        await loadPendingApprovals(selectedUserId.value!);
+        await loadMentees(); // Refresh counts
+    } catch (e: any) {
+        notifyError(e?.message || 'Failed to approve progress');
+    } finally {
+        processingApproval.value = null;
+    }
+}
+
+function toggleComment(approvalId: number) {
+    if (commentingApproval.value === approvalId) {
+        commentingApproval.value = null;
+    } else {
+        commentingApproval.value = approvalId;
+        if (!commentText.value[approvalId]) {
+            commentText.value[approvalId] = '';
+        }
+    }
+}
+
+async function submitComment(approval: PendingApproval) {
+    const comment = commentText.value[approval.id]?.trim();
+    if (!comment) {
+        notifyError('Comment cannot be empty');
+        return;
+    }
+
+    processingApproval.value = approval.id;
+    try {
+        await fetchJson(
+            `/pdps/${approval.pdp.id}/skills/${approval.skill.id}/criteria/${approval.criterion.index}/progress/${approval.id}/comment.json`,
+            {
+                method: 'PATCH',
+                body: JSON.stringify({ comment }),
+            }
+        );
+        notifySuccess('Comment added');
+        commentText.value[approval.id] = '';
+        commentingApproval.value = null;
+    } catch (e: any) {
+        notifyError(e?.message || 'Failed to add comment');
+    } finally {
+        processingApproval.value = null;
+    }
+}
+
+async function rejectProgress(approval: PendingApproval) {
+    // Rejection is done via comment
+    const comment = commentText.value[approval.id]?.trim();
+    if (!comment) {
+        notifyError('Please add a comment explaining the rejection');
+        commentingApproval.value = approval.id;
+        return;
+    }
+
+    await submitComment(approval);
 }
 
 onMounted(() => {
@@ -368,10 +438,62 @@ onMounted(() => {
                                                     }}
                                                 </div>
 
-                                                <div class="flex gap-2">
+                                                <!-- Comment input (when toggled) -->
+                                                <div
+                                                    v-if="commentingApproval === approval.id"
+                                                    class="mb-3"
+                                                >
+                                                    <textarea
+                                                        v-model="commentText[approval.id]"
+                                                        placeholder="Add your comment..."
+                                                        class="w-full rounded border p-2 text-sm"
+                                                        rows="3"
+                                                    ></textarea>
+                                                </div>
+
+                                                <!-- Action buttons -->
+                                                <div class="flex flex-wrap gap-2">
+                                                    <!-- Approve button -->
+                                                    <button
+                                                        @click="approveProgress(approval)"
+                                                        :disabled="processingApproval === approval.id"
+                                                        class="flex items-center gap-1 rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                                                    >
+                                                        <Check class="h-3 w-3" />
+                                                        Approve
+                                                    </button>
+
+                                                    <!-- Comment/Reject button -->
+                                                    <button
+                                                        v-if="commentingApproval !== approval.id"
+                                                        @click="toggleComment(approval.id)"
+                                                        class="flex items-center gap-1 rounded border px-3 py-1.5 text-xs hover:bg-muted"
+                                                    >
+                                                        <MessageSquare class="h-3 w-3" />
+                                                        Comment
+                                                    </button>
+
+                                                    <!-- Submit comment button (when comment box is open) -->
+                                                    <template v-else>
+                                                        <button
+                                                            @click="submitComment(approval)"
+                                                            :disabled="processingApproval === approval.id"
+                                                            class="flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                                                        >
+                                                            Send Comment
+                                                        </button>
+                                                        <button
+                                                            @click="toggleComment(approval.id)"
+                                                            class="flex items-center gap-1 rounded border px-3 py-1.5 text-xs hover:bg-muted"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </template>
+
+                                                    <!-- Open in PDP link -->
                                                     <a
                                                         :href="`/pdps?tab=manage&pdp=${approval.pdp.id}&skill=${approval.skill.id}&criterion=${approval.criterion.index}`"
-                                                        class="rounded border px-3 py-1.5 text-xs hover:bg-background"
+                                                        class="flex items-center gap-1 rounded border px-3 py-1.5 text-xs hover:bg-background"
                                                     >
                                                         Open in PDP
                                                     </a>
