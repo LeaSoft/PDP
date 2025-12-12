@@ -44,7 +44,7 @@ class CuratorController extends Controller
                       ->where('pdp_curators.user_id', '=', $curatorId);
                 })
                 ->where('pdps.user_id', '=', $mentee->user_id)
-                ->where('pdp_skill_criterion_progress.approved', '=', false)
+                ->where('pdp_skill_criterion_progress.status', '=', 'pending')
                 ->count();
 
             $result[] = [
@@ -95,7 +95,7 @@ class CuratorController extends Controller
                 $j->on('pdp_curators.pdp_id', '=', 'pdps.id')
                   ->where('pdp_curators.user_id', '=', $curatorId);
             })
-            ->where('pdp_skill_criterion_progress.approved', '=', false)
+            ->where('pdp_skill_criterion_progress.status', '=', 'pending')
             ->count();
 
         return response()->json(['total' => (int)$total]);

@@ -47,6 +47,7 @@ class PdpSkillCriterionProgressRepository
     public function approve(PdpSkillCriterionProgress $entry): PdpSkillCriterionProgress
     {
         $entry->approved = true;
+        $entry->status = 'approved';
         $entry->save();
         return $entry->fresh()->load('user:id,name,email');
     }
@@ -54,6 +55,10 @@ class PdpSkillCriterionProgressRepository
     public function setCuratorComment(PdpSkillCriterionProgress $entry, ?string $comment): PdpSkillCriterionProgress
     {
         $entry->curator_comment = ($comment !== null && $comment !== '') ? $comment : null;
+        // Set status to rejected when curator comments
+        if ($comment !== null && $comment !== '') {
+            $entry->status = 'rejected';
+        }
         $entry->save();
         return $entry->fresh()->load('user:id,name,email');
     }
@@ -61,6 +66,10 @@ class PdpSkillCriterionProgressRepository
     public function updateNote(PdpSkillCriterionProgress $entry, string $note): PdpSkillCriterionProgress
     {
         $entry->note = $note;
+        // Reset status to pending when user updates their note
+        if ($entry->status === 'rejected') {
+            $entry->status = 'pending';
+        }
         $entry->save();
         return $entry->fresh()->load('user:id,name,email');
     }
@@ -105,7 +114,7 @@ class PdpSkillCriterionProgressRepository
     public function pendingApprovalsForCurator(int $curatorUserId)
     {
         return PdpSkillCriterionProgress::query()
-            ->where('approved', false)
+            ->where('pdp_skill_criterion_progress.status', '=', 'pending')
             ->join('pdp_skills', 'pdp_skills.id', '=', 'pdp_skill_criterion_progress.pdp_skill_id')
             ->join('pdps', 'pdps.id', '=', 'pdp_skills.pdp_id')
             ->join('pdp_curators', function ($j) use ($curatorUserId) {
@@ -119,6 +128,8 @@ class PdpSkillCriterionProgressRepository
                 'pdp_skill_criterion_progress.criterion_index as criterion_index',
                 'pdp_skill_criterion_progress.user_id as author_id',
                 'pdp_skill_criterion_progress.note as note',
+                'pdp_skill_criterion_progress.status as status',
+                'pdp_skill_criterion_progress.curator_comment as curator_comment',
                 'pdp_skill_criterion_progress.created_at as created_at',
                 'pdp_skills.pdp_id as pdp_id',
                 'pdp_skills.skill as skill',
@@ -136,7 +147,7 @@ class PdpSkillCriterionProgressRepository
     public function pendingApprovalsForCuratorAndMentee(int $curatorUserId, int $menteeUserId)
     {
         return PdpSkillCriterionProgress::query()
-            ->where('approved', false)
+            ->where('pdp_skill_criterion_progress.status', '=', 'pending')
             ->join('pdp_skills', 'pdp_skills.id', '=', 'pdp_skill_criterion_progress.pdp_skill_id')
             ->join('pdps', 'pdps.id', '=', 'pdp_skills.pdp_id')
             ->join('pdp_curators', function ($j) use ($curatorUserId) {
@@ -151,6 +162,8 @@ class PdpSkillCriterionProgressRepository
                 'pdp_skill_criterion_progress.criterion_index as criterion_index',
                 'pdp_skill_criterion_progress.user_id as author_id',
                 'pdp_skill_criterion_progress.note as note',
+                'pdp_skill_criterion_progress.status as status',
+                'pdp_skill_criterion_progress.curator_comment as curator_comment',
                 'pdp_skill_criterion_progress.created_at as created_at',
                 'pdp_skills.pdp_id as pdp_id',
                 'pdp_skills.skill as skill',

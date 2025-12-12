@@ -18,9 +18,10 @@ import { Link } from '@inertiajs/vue3';
 import { BookOpen, LayoutGrid, List, FileText, Layers, Users } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import { fetchJson } from '@/lib/csrf';
+import { usePendingApprovalsCount } from '@/composables/usePendingApprovalsCount';
 
 const isCurator = ref(false);
-const pendingApprovalsCount = ref(0);
+const { pendingApprovalsCount, loadPendingApprovalsCount } = usePendingApprovalsCount();
 
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -81,17 +82,6 @@ async function checkCuratorStatus() {
     } catch {
         // Silently fail - user is not a curator or error occurred
         isCurator.value = false;
-    }
-}
-
-// Load pending approvals count for badge
-async function loadPendingApprovalsCount() {
-    try {
-        const response = await fetchJson('/curator/mentees/pending-approvals/count.json');
-        pendingApprovalsCount.value = response?.total || 0;
-    } catch {
-        // Silently fail - don't show badge if error occurs
-        pendingApprovalsCount.value = 0;
     }
 }
 

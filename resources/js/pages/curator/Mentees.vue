@@ -6,6 +6,7 @@ import { Head } from '@inertiajs/vue3';
 import { fetchJson } from '@/lib/csrf';
 import { notifyError, notifySuccess } from '@/composables/useNotify';
 import { ChevronDown, ChevronRight, Check, X, MessageSquare } from 'lucide-vue-next';
+import { usePendingApprovalsCount } from '@/composables/usePendingApprovalsCount';
 
 interface Mentee {
     user_id: number;
@@ -20,6 +21,8 @@ interface PendingApproval {
     skill: { id: number; name: string };
     criterion: { index: number; text: string };
     note: string;
+    status: 'pending' | 'rejected' | 'approved';
+    curator_comment?: string;
     created_at: string;
     owner?: { id: number; name?: string; email?: string };
 }
@@ -40,6 +43,8 @@ const error = ref('');
 const processingApproval = ref<number | null>(null);
 const commentingApproval = ref<number | null>(null);
 const commentText = ref<Record<number, string>>({});
+
+const { refreshPendingApprovalsCount } = usePendingApprovalsCount();
 
 const selectedMentee = computed(() => {
     if (!selectedUserId.value) return null;
@@ -190,6 +195,7 @@ async function approveProgress(approval: PendingApproval) {
         // Remove from list and reload
         await loadPendingApprovals(selectedUserId.value!);
         await loadMentees(); // Refresh counts
+        await refreshPendingApprovalsCount(); // Refresh sidebar badge
     } catch (e: any) {
         notifyError(e?.message || 'Failed to approve progress');
     } finally {
@@ -224,9 +230,13 @@ async function submitComment(approval: PendingApproval) {
                 body: JSON.stringify({ comment }),
             }
         );
-        notifySuccess('Comment added');
+        notifySuccess('Feedback sent - status changed to rejected');
         commentText.value[approval.id] = '';
         commentingApproval.value = null;
+        // Reload to show rejected status
+        await loadPendingApprovals(selectedUserId.value!);
+        await loadMentees(); // Refresh counts
+        await refreshPendingApprovalsCount(); // Refresh sidebar badge
     } catch (e: any) {
         notifyError(e?.message || 'Failed to add comment');
     } finally {
@@ -406,11 +416,10 @@ onMounted(() => {
                                                 :key="approval.id"
                                                 class="rounded-md border bg-muted/30 p-3"
                                             >
-                                                <div
-                                                    class="mb-1 text-xs font-medium"
-                                                >
+                                                <div class="mb-1 text-xs font-medium">
                                                     Criterion:
                                                 </div>
+
                                                 <div class="mb-2 text-sm">
                                                     {{
                                                         approval.criterion.text
@@ -422,7 +431,7 @@ onMounted(() => {
                                                     class="mb-2 text-xs text-muted-foreground"
                                                 >
                                                     <span class="font-medium"
-                                                        >Note:</span
+                                                        >User note:</span
                                                     >
                                                     {{ approval.note }}
                                                 </div>

@@ -856,13 +856,17 @@ onMounted(async () => {
                         <span>{{ e.user?.name || 'You' }} · {{ formatKyivDateTime(e.created_at) }}</span>
                         <span
                           class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px]"
-                          :class="e.approved ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'"
-                        >{{ e.approved ? 'Approved' : 'Pending' }}</span>
+                          :class="{
+                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300': e.status === 'approved',
+                            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300': e.status === 'pending',
+                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300': e.status === 'rejected'
+                          }"
+                        >{{ e.status === 'approved' ? 'Approved' : e.status === 'rejected' ? 'Rejected' : 'Pending' }}</span>
                       </div>
                       <div class="flex items-center gap-1">
-                        <button v-if="!e.approved && selectedPdpIsCurator" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="approveProgressEntry(e.id)">Approve</button>
-                        <button v-if="!e.approved && selectedPdpIsCurator" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="editCommentFor(e.id)">Comment</button>
-                        <button v-if="!e.approved && selectedPdpIsOwner" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="editNoteFor(e.id)">Edit</button>
+                        <button v-if="e.status === 'pending' && selectedPdpIsCurator" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="approveProgressEntry(e.id)">Approve</button>
+                        <button v-if="e.status === 'pending' && selectedPdpIsCurator" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="editCommentFor(e.id)">Comment</button>
+                        <button v-if="e.status === 'rejected' && selectedPdpIsOwner" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="editNoteFor(e.id)">Edit</button>
                         <button v-if="selectedPdpIsOwner" class="rounded border px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive hover:text-destructive-foreground" @click="deleteProgressEntry(e.id)">Delete</button>
                       </div>
                     </div>

@@ -63,8 +63,11 @@ const markAllAsRead = async () => {
     await axios.post('/notifications/read-all');
 
     // Update UI immediately
-    notifications.value = notifications.value.map((n) => ({ ...n, read: 1 }));
+    // We fetch only unread notifications for this bell,
+    // so after marking all as read the visible list should be empty.
+    notifications.value = [];
     unreadCount.value = 0;
+    updateFade();
 };
 
 const openNotification = async (n) => {
