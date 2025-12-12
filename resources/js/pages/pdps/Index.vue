@@ -17,10 +17,6 @@ import { parseCriteriaItems } from '@/utils/criteria'
 import { notifySuccess, notifyError } from '@/composables/useNotify'
 import { confirmDialog } from '@/composables/useConfirm'
 
-
-
-
-
 // Types
 export type Pdp = {
   id: number

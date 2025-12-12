@@ -240,6 +240,46 @@ class PdpSkillService
         return $out;
     }
 
+    public function pendingApprovalsForMentee(int $curatorUserId, int $menteeUserId): array
+    {
+        $rows = $this->progressRepo->pendingApprovalsForCuratorAndMentee($curatorUserId, $menteeUserId);
+
+        $out = [];
+        foreach ($rows as $row) {
+            $criterionText = '';
+            $items = $this->parseCriteriaItems((string)($row->criteria ?? ''));
+            $idx = (int)$row->criterion_index;
+            if ($idx >= 0 && $idx < count($items)) {
+                $criterionText = (string)($items[$idx]['text'] ?? '');
+            }
+
+            $out[] = [
+                'id' => (int)$row->id,
+                'pdp' => [
+                    'id' => (int)$row->pdp_id,
+                    'title' => (string)$row->pdp_title,
+                ],
+                'skill' => [
+                    'id' => (int)$row->skill_id,
+                    'name' => (string)$row->skill,
+                ],
+                'criterion' => [
+                    'index' => $idx,
+                    'text' => $criterionText,
+                ],
+                'note' => (string)$row->note,
+                'created_at' => (string)$row->created_at,
+                'owner' => [
+                    'id' => (int)($row->owner_id ?? 0),
+                    'name' => $row->owner_name,
+                    'email' => $row->owner_email,
+                ],
+            ];
+        }
+
+        return $out;
+    }
+
     public function buildSummary(Pdp $pdp): array
     {
         $skills = $this->skillRepo->getSkillsForSummary($pdp);

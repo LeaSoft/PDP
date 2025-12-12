@@ -132,4 +132,36 @@ class PdpSkillCriterionProgressRepository
             ->limit(100)
             ->get();
     }
+
+    public function pendingApprovalsForCuratorAndMentee(int $curatorUserId, int $menteeUserId)
+    {
+        return PdpSkillCriterionProgress::query()
+            ->where('approved', false)
+            ->join('pdp_skills', 'pdp_skills.id', '=', 'pdp_skill_criterion_progress.pdp_skill_id')
+            ->join('pdps', 'pdps.id', '=', 'pdp_skills.pdp_id')
+            ->join('pdp_curators', function ($j) use ($curatorUserId) {
+                $j->on('pdp_curators.pdp_id', '=', 'pdps.id')
+                  ->where('pdp_curators.user_id', '=', $curatorUserId);
+            })
+            ->leftJoin('users', 'users.id', '=', 'pdps.user_id')
+            ->where('pdps.user_id', '=', $menteeUserId)
+            ->select([
+                'pdp_skill_criterion_progress.id as id',
+                'pdp_skill_criterion_progress.pdp_skill_id as skill_id',
+                'pdp_skill_criterion_progress.criterion_index as criterion_index',
+                'pdp_skill_criterion_progress.user_id as author_id',
+                'pdp_skill_criterion_progress.note as note',
+                'pdp_skill_criterion_progress.created_at as created_at',
+                'pdp_skills.pdp_id as pdp_id',
+                'pdp_skills.skill as skill',
+                'pdp_skills.criteria as criteria',
+                'pdps.title as pdp_title',
+                'users.id as owner_id',
+                'users.name as owner_name',
+                'users.email as owner_email',
+            ])
+            ->orderBy('pdp_skill_criterion_progress.created_at')
+            ->limit(100)
+            ->get();
+    }
 }
