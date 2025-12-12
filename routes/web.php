@@ -99,6 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Curator: My Mentees
     Route::get('/curator/mentees.json', [CuratorController::class, 'mentees']);
     Route::get('/curator/mentees/{user}/pending-approvals.json', [CuratorController::class, 'menteePendingApprovals']);
+    Route::get('/curator/mentees/pending-approvals/count.json', [CuratorController::class, 'pendingApprovalsCount']);
 
     // PDP progress by closed skills (Done)
     Route::get('/pdps/{pdp}/progress.json', [PdpProgressController::class, 'show']);

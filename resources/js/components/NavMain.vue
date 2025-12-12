@@ -4,6 +4,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuBadge,
 } from '@/components/ui/sidebar';
 import { urlIsActive } from '@/lib/utils';
 import { type NavItem } from '@/types';
@@ -17,9 +18,9 @@ const page = usePage();
 </script>
 
 <template>
-    <SidebarGroup class="px-2 py-0">
+    <SidebarGroup>
         <SidebarMenu>
-            <SidebarMenuItem v-for="item in items" :key="item.title">
+            <SidebarMenuItem v-for="item in items" :key="item.title" class="relative">
                 <SidebarMenuButton
                     as-child
                     :is-active="urlIsActive(item.href, page.url)"
@@ -30,6 +31,23 @@ const page = usePage();
                         <span>{{ item.title }}</span>
                     </Link>
                 </SidebarMenuButton>
+
+                <!-- Badge over icon (only collapsed sidebar) -->
+                <span
+                    v-if="item.badge && item.badge > 0"
+                    class="pointer-events-none absolute right-0 top-0 z-10 hidden -translate-y-1/4 translate-x-1/4 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold leading-tight text-white group-data-[collapsible=icon]:flex"
+                    style="min-width: 1.125rem; height: 1.125rem;"
+                >
+                    {{ item.badge > 9 ? '9+' : item.badge }}
+                </span>
+
+                <!-- Badge for expanded state -->
+                <SidebarMenuBadge
+                    v-if="item.badge && item.badge > 0"
+                    class="bg-orange-500 text-white"
+                >
+                    {{ item.badge > 9 ? '9+' : item.badge }}
+                </SidebarMenuBadge>
             </SidebarMenuItem>
         </SidebarMenu>
     </SidebarGroup>

@@ -80,4 +80,24 @@ class CuratorController extends Controller
 
         return response()->json($out);
     }
+
+    /**
+     * Get total pending approvals count for all mentees
+     */
+    public function pendingApprovalsCount(Request $request)
+    {
+        $curatorId = $request->user()->id;
+
+        $total = DB::table('pdp_skill_criterion_progress')
+            ->join('pdp_skills', 'pdp_skills.id', '=', 'pdp_skill_criterion_progress.pdp_skill_id')
+            ->join('pdps', 'pdps.id', '=', 'pdp_skills.pdp_id')
+            ->join('pdp_curators', function ($j) use ($curatorId) {
+                $j->on('pdp_curators.pdp_id', '=', 'pdps.id')
+                  ->where('pdp_curators.user_id', '=', $curatorId);
+            })
+            ->where('pdp_skill_criterion_progress.approved', '=', false)
+            ->count();
+
+        return response()->json(['total' => (int)$total]);
+    }
 }

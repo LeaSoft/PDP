@@ -5,6 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import { fetchJson } from '@/lib/csrf';
 import { notifyError } from '@/composables/useNotify';
+import { ChevronDown, ChevronRight } from 'lucide-vue-next';
 
 interface Mentee {
     user_id: number;
@@ -42,12 +43,16 @@ const selectedMentee = computed(() => {
     return mentees.value.find((m) => m.user_id === selectedUserId.value);
 });
 
+// Collapsible state for PDPs (track by PDP ID)
+const expandedPdps = ref<Set<number>>(new Set());
+
 // Group approvals by PDP -> Skill -> Criteria
 const groupedApprovals = computed(() => {
     const grouped: Record<
         number,
         {
             pdp: { id: number; title: string };
+            pendingCount: number;
             skills: Record<
                 number,
                 {
@@ -62,6 +67,7 @@ const groupedApprovals = computed(() => {
         if (!grouped[approval.pdp.id]) {
             grouped[approval.pdp.id] = {
                 pdp: approval.pdp,
+                pendingCount: 0,
                 skills: {},
             };
         }
@@ -76,10 +82,46 @@ const groupedApprovals = computed(() => {
         grouped[approval.pdp.id].skills[approval.skill.id].approvals.push(
             approval,
         );
+        grouped[approval.pdp.id].pendingCount++;
     }
 
     return grouped;
 });
+
+// Auto-expand logic: if only one PDP, expand it; if multiple, expand the one with most pending
+function initializeExpandedState() {
+    const pdpIds = Object.keys(groupedApprovals.value).map(Number);
+
+    if (pdpIds.length === 0) {
+        expandedPdps.value.clear();
+        return;
+    }
+
+    if (pdpIds.length === 1) {
+        // Single PDP: expand by default
+        expandedPdps.value = new Set([pdpIds[0]]);
+    } else {
+        // Multiple PDPs: expand the one with most pending approvals
+        const sortedByPending = pdpIds.sort((a, b) => {
+            const countA = groupedApprovals.value[a].pendingCount;
+            const countB = groupedApprovals.value[b].pendingCount;
+            return countB - countA;
+        });
+        expandedPdps.value = new Set([sortedByPending[0]]);
+    }
+}
+
+function togglePdp(pdpId: number) {
+    if (expandedPdps.value.has(pdpId)) {
+        expandedPdps.value.delete(pdpId);
+    } else {
+        expandedPdps.value.add(pdpId);
+    }
+}
+
+function isPdpExpanded(pdpId: number): boolean {
+    return expandedPdps.value.has(pdpId);
+}
 
 async function loadMentees() {
     loading.value = true;
@@ -104,6 +146,8 @@ async function loadPendingApprovals(userId: number) {
         pendingApprovals.value = await fetchJson(
             `/curator/mentees/${userId}/pending-approvals.json`,
         );
+        // Initialize expanded state after data loads
+        initializeExpandedState();
     } catch (e: any) {
         notifyError(e?.message || 'Failed to load pending approvals');
         pendingApprovals.value = [];
@@ -241,18 +285,38 @@ onMounted(() => {
                             No pending approvals
                         </div>
 
-                        <!-- Grouped Approvals -->
-                        <div v-else class="space-y-6">
+                        <!-- Grouped Approvals with Collapsible PDPs -->
+                        <div v-else class="space-y-3">
                             <div
                                 v-for="(pdpGroup, pdpId) in groupedApprovals"
                                 :key="pdpId"
-                                class="rounded-lg border p-4"
+                                class="rounded-lg border overflow-hidden"
                             >
-                                <h3 class="mb-3 text-base font-semibold">
-                                    {{ pdpGroup.pdp.title }}
-                                </h3>
+                                <!-- PDP Header (always visible, clickable) -->
+                                <button
+                                    @click="togglePdp(Number(pdpId))"
+                                    class="w-full flex items-center justify-between gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
+                                >
+                                    <div class="flex items-center gap-2 flex-1">
+                                        <component
+                                            :is="isPdpExpanded(Number(pdpId)) ? ChevronDown : ChevronRight"
+                                            class="h-5 w-5 text-muted-foreground flex-shrink-0"
+                                        />
+                                        <h3 class="text-base font-semibold">
+                                            {{ pdpGroup.pdp.title }}
+                                        </h3>
+                                    </div>
+                                    <div class="flex-shrink-0 rounded-full bg-orange-500 px-2.5 py-0.5 text-xs font-medium text-white">
+                                        {{ pdpGroup.pendingCount }} pending
+                                    </div>
+                                </button>
 
-                                <div class="space-y-4">
+                                <!-- PDP Content (collapsible) -->
+                                <div
+                                    v-show="isPdpExpanded(Number(pdpId))"
+                                    class="border-t p-4 space-y-4"
+                                    style="transition: all 0.2s ease-in-out"
+                                >
                                     <div
                                         v-for="(
                                             skillGroup, skillId

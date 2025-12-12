@@ -20,6 +20,7 @@ import AppLogo from './AppLogo.vue';
 import { fetchJson } from '@/lib/csrf';
 
 const isCurator = ref(false);
+const pendingApprovalsCount = ref(0);
 
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -46,6 +47,7 @@ const mainNavItems = computed<NavItem[]>(() => {
             title: 'My Mentees',
             href: '/curator/mentees',
             icon: Users,
+            badge: pendingApprovalsCount.value > 0 ? pendingApprovalsCount.value : undefined,
         });
     }
 
@@ -73,10 +75,23 @@ async function checkCuratorStatus() {
         const shared = await fetchJson('/pdps.shared.json');
         if (Array.isArray(shared) && shared.length > 0) {
             isCurator.value = true;
+            // Load pending approvals count for curators
+            await loadPendingApprovalsCount();
         }
     } catch {
         // Silently fail - user is not a curator or error occurred
         isCurator.value = false;
+    }
+}
+
+// Load pending approvals count for badge
+async function loadPendingApprovalsCount() {
+    try {
+        const response = await fetchJson('/curator/mentees/pending-approvals/count.json');
+        pendingApprovalsCount.value = response?.total || 0;
+    } catch {
+        // Silently fail - don't show badge if error occurs
+        pendingApprovalsCount.value = 0;
     }
 }
 
