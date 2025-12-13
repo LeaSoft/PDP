@@ -19,6 +19,7 @@ const props = defineProps<{
   collapseOwned: boolean
   collapseShared: boolean
   activeTab: 'Manage' | 'Annex'
+  unseenByPdp?: Record<number, { approved: number; commented: number }>
 }>()
 
 const emit = defineEmits<{
@@ -65,7 +66,23 @@ const hasSharedPdps = computed(() => props.sharedPdps.length > 0)
                 @click="emit('selectPdp', p.id)">
           <div class="flex items-center justify-between">
             <span class="font-medium">{{ p.title }}</span>
-            <span class="text-xs text-muted-foreground">{{ p.skills_count ?? 0 }} skills</span>
+            <span class="flex items-center gap-2">
+              <template v-if="unseenByPdp && unseenByPdp[p.id]">
+                <span v-if="unseenByPdp[p.id].approved" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
+                    <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.414l-7.5 7.5a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.793-6.793a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  </svg>
+                  {{ unseenByPdp[p.id].approved }}
+                </span>
+                <span v-if="unseenByPdp[p.id].commented" class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
+                    <path d="M18 10c0 3.866-3.582 7-8 7a9.225 9.225 0 01-2.9-.46L4 17l.46-3.1A7.827 7.827 0 013 10c0-3.866 3.582-7 8-7s7 3.134 7 7z" />
+                  </svg>
+                  {{ unseenByPdp[p.id].commented }}
+                </span>
+              </template>
+              <span class="text-xs text-muted-foreground">{{ p.skills_count ?? 0 }} skills</span>
+            </span>
           </div>
           <div class="text-xs text-muted-foreground">{{ p.status }} · {{ p.priority }}<span v-if="p.eta"> · ETA: {{ p.eta }}</span></div>
           <div class="mt-2 flex gap-2">

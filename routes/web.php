@@ -7,6 +7,7 @@ use App\Http\Controllers\PdpController;
 use App\Http\Controllers\PdpSkillController;
 use App\Http\Controllers\PdpProgressController;
 use App\Http\Controllers\UserProfessionalLevelController;
+use App\Http\Controllers\CuratorController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -29,6 +30,11 @@ Route::get('pdps', function () {
 Route::get('pdps/templates', function () {
     return Inertia::render('pdps/Templates');
 })->middleware(['auth', 'verified'])->name('pdps.templates');
+
+// Curator mentees page
+Route::get('curator/mentees', function () {
+    return Inertia::render('curator/Mentees');
+})->middleware(['auth', 'verified'])->name('curator.mentees');
 
 // JSON endpoints for PDPs and Skills (session-authenticated + CSRF)
 // Allow selecting initial professional level BEFORE email verification
@@ -89,6 +95,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard/pdps/{pdp}/summary.json', [PdpSkillController::class, 'summary']);
     // Dashboard: My PDPs snapshot overview
     Route::get('/dashboard/pdps/overview.json', [PdpController::class, 'overview']);
+
+    // Curator: My Mentees
+    Route::get('/curator/mentees.json', [CuratorController::class, 'mentees']);
+    Route::get('/curator/mentees/{user}/pending-approvals.json', [CuratorController::class, 'menteePendingApprovals']);
+    Route::get('/curator/mentees/pending-approvals/count.json', [CuratorController::class, 'pendingApprovalsCount']);
 
     // PDP progress by closed skills (Done)
     Route::get('/pdps/{pdp}/progress.json', [PdpProgressController::class, 'show']);

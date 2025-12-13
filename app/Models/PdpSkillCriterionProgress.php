@@ -19,6 +19,7 @@ class PdpSkillCriterionProgress extends Model
         'note',
         'approved',
         'curator_comment',
+        'status',
     ];
 
     public function skill(): BelongsTo

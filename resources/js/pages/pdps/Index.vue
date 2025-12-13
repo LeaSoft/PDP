@@ -17,10 +17,6 @@ import { parseCriteriaItems } from '@/utils/criteria'
 import { notifySuccess, notifyError } from '@/composables/useNotify'
 import { confirmDialog } from '@/composables/useConfirm'
 
-
-
-
-
 // Types
 export type Pdp = {
   id: number
@@ -78,6 +74,26 @@ const activeTab = ref<'Manage' | 'Annex'>('Manage')
 
 // Annex state
 const annex = ref<any | null>(null)
+
+// Unseen curator actions (based on unread notifications)
+type UnseenType = 'approved' | 'rejected' | 'comment'
+const unseenByCriterion = ref<Record<string, { ids: number[]; types: UnseenType[] }>>({})
+const unseenTotals = computed(() => {
+  let approved = 0
+  let rejected = 0
+  let commented = 0
+  Object.values(unseenByCriterion.value).forEach(v => {
+    // Count unique types per bucket to avoid over-inflating by multiple notifications
+    const set = new Set(v.types)
+    if (set.has('approved')) approved++
+    if (set.has('rejected')) rejected++
+    if (set.has('comment')) commented++
+  })
+  return { approved, rejected, commented }
+})
+
+// Aggregation by PDP for list badges in "Your PDPs"
+const unseenByPdp = ref<Record<number, { approved: number; commented: number }>>({})
 
 const showPdpModal = ref(false)
 const editingPdpId = ref<number | null>(null)
@@ -144,6 +160,21 @@ async function openProgressModal(s: PdpSkill, index: number) {
   progressState.newNote = ''
   showProgressModal.value = true
   await loadProgressEntries()
+
+  // Mark unseen notifications for this criterion as read (so badges disappear)
+  try {
+    const key = `${s.pdp_id}:${s.id}:${index}`
+    const bucket = unseenByCriterion.value[key]
+    if (bucket && Array.isArray(bucket.ids) && bucket.ids.length) {
+      await Promise.all(
+        bucket.ids.map(id => http(`/notifications/${id}/read`, { method: 'POST' }).catch(() => null))
+      )
+      // Refresh unseen after marking
+      await refreshUnseen()
+      // Notify global listeners (e.g., NotificationBell) to update counters
+      try { window.dispatchEvent(new CustomEvent('notifications:changed')) } catch {}
+    }
+  } catch {}
 }
 
 async function loadProgressEntries() {
@@ -309,6 +340,8 @@ async function loadSharedPdps() {
 
 async function loadSkills(pdpId: number) {
   skills.value = await http(`/pdps/${pdpId}/skills.json`)
+  // Refresh unseen indicators after skills loaded
+  await refreshUnseen()
 }
 
 async function loadCurators(pdpId: number) {
@@ -737,6 +770,7 @@ onMounted(async () => {
       curators.value = []
     }
     await loadSkills(deepPdp)
+    await refreshUnseen()
     if (deepSkill && deepCriterion != null) {
       const s = skills.value.find(sk => sk.id === deepSkill)
       if (s) {
@@ -745,6 +779,56 @@ onMounted(async () => {
     }
   }
 })
+
+// Helpers: Unseen curator actions via notifications
+function parseUnseenType(t: string | undefined | null): UnseenType | null {
+  const v = String(t || '').toLowerCase()
+  if (v.includes('approve') || v === 'success' || v === 'approved') return 'approved'
+  if (v.includes('reject') || v === 'warning' || v === 'rejected') return 'rejected'
+  if (v.includes('comment') || v === 'info') return 'comment'
+  return null
+}
+
+async function refreshUnseen() {
+  try {
+    const data = await http('/notifications.unread.json')
+    const map: Record<string, { ids: number[]; types: UnseenType[] }> = {}
+    const byPdp: Record<number, { approved: number; commented: number }> = {}
+    const arr = Array.isArray(data) ? data : []
+    for (const n of arr) {
+      const url: string = n?.url || ''
+      try {
+        const u = new URL(url, location.origin)
+        const pdp = parseInt(u.searchParams.get('pdp') || '', 10)
+        const skill = parseInt(u.searchParams.get('skill') || '', 10)
+        const criterion = parseInt(u.searchParams.get('criterion') || '', 10)
+        if (!Number.isFinite(pdp)) continue
+
+        // Per-PDP counters (only approved/commented requested for list badges)
+        const t = parseUnseenType(n?.type)
+        if (!byPdp[pdp]) byPdp[pdp] = { approved: 0, commented: 0 }
+        if (t === 'approved') byPdp[pdp].approved += 1
+        if (t === 'comment') byPdp[pdp].commented += 1
+
+        // Per-criterion only for currently selected PDP
+        if (Number.isFinite(skill) && Number.isFinite(criterion) && pdp === selectedPdpId.value) {
+          const key = `${pdp}:${skill}:${criterion}`
+          const type = t
+          if (!map[key]) map[key] = { ids: [], types: [] }
+          if (Number.isFinite(n?.id)) map[key].ids.push(Number(n.id))
+          if (type) map[key].types.push(type)
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+    unseenByCriterion.value = map
+    unseenByPdp.value = byPdp
+  } catch {
+    unseenByCriterion.value = {}
+    unseenByPdp.value = {}
+  }
+}
 
 </script>
 
@@ -764,6 +848,7 @@ onMounted(async () => {
           :collapse-owned="collapseOwned"
           :collapse-shared="collapseShared"
           :active-tab="activeTab"
+          :unseen-by-pdp="unseenByPdp"
           @update:collapseOwned="val => (collapseOwned = val)"
           @update:collapseShared="val => (collapseShared = val)"
           @selectPdp="selectPdp"
@@ -795,6 +880,8 @@ onMounted(async () => {
             :curator-email="curatorEmail"
             :user-options="userOptions"
             :show-user-dropdown="showUserDropdown"
+            :unseen-by-criterion="unseenByCriterion"
+            :unseen-totals="unseenTotals"
             @openEditPdp="openEditPdp"
             @openCreateSkill="openCreateSkill"
             @openEditSkill="openEditSkill"
@@ -860,13 +947,17 @@ onMounted(async () => {
                         <span>{{ e.user?.name || 'You' }} · {{ formatKyivDateTime(e.created_at) }}</span>
                         <span
                           class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px]"
-                          :class="e.approved ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'"
-                        >{{ e.approved ? 'Approved' : 'Pending' }}</span>
+                          :class="{
+                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300': e.status === 'approved',
+                            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300': e.status === 'pending',
+                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300': e.status === 'rejected'
+                          }"
+                        >{{ e.status === 'approved' ? 'Approved' : e.status === 'rejected' ? 'Rejected' : 'Pending' }}</span>
                       </div>
                       <div class="flex items-center gap-1">
-                        <button v-if="!e.approved && selectedPdpIsCurator" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="approveProgressEntry(e.id)">Approve</button>
-                        <button v-if="!e.approved && selectedPdpIsCurator" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="editCommentFor(e.id)">Comment</button>
-                        <button v-if="!e.approved && selectedPdpIsOwner" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="editNoteFor(e.id)">Edit</button>
+                        <button v-if="e.status === 'pending' && selectedPdpIsCurator" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="approveProgressEntry(e.id)">Approve</button>
+                        <button v-if="e.status === 'pending' && selectedPdpIsCurator" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="editCommentFor(e.id)">Comment</button>
+                        <button v-if="e.status === 'rejected' && selectedPdpIsOwner" class="rounded border px-2 py-0.5 text-[10px] hover:bg-muted" @click="editNoteFor(e.id)">Edit</button>
                         <button v-if="selectedPdpIsOwner" class="rounded border px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive hover:text-destructive-foreground" @click="deleteProgressEntry(e.id)">Delete</button>
                       </div>
                     </div>

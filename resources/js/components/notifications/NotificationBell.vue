@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import axios from 'axios';
 
 const open = ref(false);
@@ -44,6 +44,20 @@ onMounted(() => {
     load(); // <-- load count immediately on header load
 });
 
+// Listen for global notifications state changes (e.g., when user views PDP criterion)
+const onNotificationsChanged = () => {
+    // Refresh unread counter silently
+    load();
+};
+
+onMounted(() => {
+    window.addEventListener('notifications:changed', onNotificationsChanged as any);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('notifications:changed', onNotificationsChanged as any);
+});
+
 const toggle = () => {
     open.value = !open.value;
 
@@ -63,8 +77,11 @@ const markAllAsRead = async () => {
     await axios.post('/notifications/read-all');
 
     // Update UI immediately
-    notifications.value = notifications.value.map((n) => ({ ...n, read: 1 }));
+    // We fetch only unread notifications for this bell,
+    // so after marking all as read the visible list should be empty.
+    notifications.value = [];
     unreadCount.value = 0;
+    updateFade();
 };
 
 const openNotification = async (n) => {
