@@ -48,6 +48,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_moderator' => 'boolean',
+            // Whether the user is a global super admin
+            'super_admin' => 'boolean',
         ];
+    }
+
+    /**
+     * Check if the user has Super Admin privileges.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return (bool)($this->super_admin ?? false);
     }
 }
