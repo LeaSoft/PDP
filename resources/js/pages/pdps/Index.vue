@@ -171,6 +171,8 @@ async function openProgressModal(s: PdpSkill, index: number) {
       )
       // Refresh unseen after marking
       await refreshUnseen()
+      // Notify global listeners (e.g., NotificationBell) to update counters
+      try { window.dispatchEvent(new CustomEvent('notifications:changed')) } catch {}
     }
   } catch {}
 }

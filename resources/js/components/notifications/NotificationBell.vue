@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import axios from 'axios';
 
 const open = ref(false);
@@ -42,6 +42,20 @@ const load = async () => {
 
 onMounted(() => {
     load(); // <-- load count immediately on header load
+});
+
+// Listen for global notifications state changes (e.g., when user views PDP criterion)
+const onNotificationsChanged = () => {
+    // Refresh unread counter silently
+    load();
+};
+
+onMounted(() => {
+    window.addEventListener('notifications:changed', onNotificationsChanged as any);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('notifications:changed', onNotificationsChanged as any);
 });
 
 const toggle = () => {
