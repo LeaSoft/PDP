@@ -8,6 +8,12 @@ use App\Http\Controllers\PdpSkillController;
 use App\Http\Controllers\PdpProgressController;
 use App\Http\Controllers\UserProfessionalLevelController;
 use App\Http\Controllers\CuratorController;
+use App\Http\Controllers\AdminDashboardController;
+use Inertia\Inertia as InertiaFacade;
+use App\Http\Controllers\AdminEntriesController;
+use App\Http\Controllers\AdminCuratorsController;
+use App\Http\Controllers\AdminUsersController;
+use App\Http\Controllers\AdminPdpsController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -118,3 +124,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+
+// Admin area (Super Admin only)
+Route::prefix('admin')
+    ->middleware(['auth', 'verified', 'super_admin'])
+    ->group(function () {
+        // Inertia page for Admin Dashboard
+        Route::get('/', function () {
+            return InertiaFacade::render('admin/Dashboard');
+        })->name('admin.dashboard');
+
+        // API endpoint for global overview metrics
+        Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+
+        // Drill-down pages (Inertia)
+        Route::get('/entries', function () { return InertiaFacade::render('admin/AdminEntriesList'); });
+        Route::get('/curators', function () { return InertiaFacade::render('admin/AdminCuratorsList'); });
+        Route::get('/users', function () { return InertiaFacade::render('admin/AdminUsersList'); });
+        Route::get('/pdps', function () { return InertiaFacade::render('admin/AdminPdpsList'); });
+
+        // Drill-down API endpoints (JSON)
+        Route::get('/entries.json', [AdminEntriesController::class, 'index']);
+        Route::get('/curators.json', [AdminCuratorsController::class, 'index']);
+        Route::post('/curators/{user}/nudge.json', [AdminCuratorsController::class, 'nudge'])->whereNumber('user');
+        Route::get('/users.json', [AdminUsersController::class, 'index']);
+        Route::get('/pdps.json', [AdminPdpsController::class, 'index']);
+    });

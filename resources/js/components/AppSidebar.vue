@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { usePage } from '@inertiajs/vue3'
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -21,6 +22,8 @@ import { fetchJson } from '@/lib/csrf';
 import { usePendingApprovalsCount } from '@/composables/usePendingApprovalsCount';
 
 const isCurator = ref(false);
+const page = usePage<{ auth: { user: { super_admin?: boolean } | null } }>()
+const isSuperAdmin = computed(() => !!page.props.auth?.user?.super_admin)
 const { pendingApprovalsCount, loadPendingApprovalsCount } = usePendingApprovalsCount();
 
 const mainNavItems = computed<NavItem[]>(() => {
@@ -50,6 +53,15 @@ const mainNavItems = computed<NavItem[]>(() => {
             icon: Users,
             badge: pendingApprovalsCount.value > 0 ? pendingApprovalsCount.value : undefined,
         });
+    }
+
+    // Add Admin only for super admins
+    if (isSuperAdmin.value) {
+        items.push({
+            title: 'Admin',
+            href: '/admin',
+            icon: LayoutGrid,
+        })
     }
 
     // Always add "Skill Templates" last
