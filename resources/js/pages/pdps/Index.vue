@@ -761,6 +761,10 @@ onMounted(async () => {
     }
   } catch {}
   await Promise.all([loadPdps(), loadSharedPdps()])
+  // Ensure unseen badges are available on initial page open (without deep links)
+  if (!deepPdp) {
+    await refreshUnseen()
+  }
   if (deepPdp) {
     selectedPdpId.value = deepPdp
     // Load curators only for owned PDPs
