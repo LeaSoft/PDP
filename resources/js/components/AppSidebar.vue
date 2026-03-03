@@ -39,16 +39,16 @@ const mainNavItems = computed<NavItem[]>(() => {
             icon: List,
         },
         {
-            title: 'Annex',
+            title: 'Annex List',
             href: '/pdps?tab=annex',
             icon: FileText,
         },
     ];
 
-    // Add "My Mentees" if user is a curator
+    // Add "Mentees List" if user is a curator
     if (isCurator.value) {
         items.push({
-            title: 'My Mentees',
+            title: 'Mentees List',
             href: '/curator/mentees',
             icon: Users,
             badge: pendingApprovalsCount.value > 0 ? pendingApprovalsCount.value : undefined,
@@ -64,9 +64,9 @@ const mainNavItems = computed<NavItem[]>(() => {
         })
     }
 
-    // Always add "Skill Templates" last
+    // Always add "Skill List" last
     items.push({
-        title: 'Skill Templates',
+        title: 'Skill List',
         href: '/pdps/templates',
         icon: Layers,
     });

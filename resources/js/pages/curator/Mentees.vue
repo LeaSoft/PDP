@@ -29,7 +29,7 @@ interface PendingApproval {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'My Mentees',
+        title: 'Mentees List',
         href: '/curator/mentees',
     },
 ];
@@ -262,12 +262,12 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head title="My Mentees" />
+    <Head title="Mentees List" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-semibold">My Mentees</h1>
+                <h1 class="text-2xl font-semibold">Mentees List</h1>
             </div>
 
             <div class="flex flex-1 gap-4 overflow-hidden">

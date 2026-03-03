@@ -84,7 +84,7 @@ async function submitAssign() {
 }
 
 const breadcrumbs = computed(() => [
-    { title: 'Skill Templates', href: '/pdps/templates' },
+    { title: 'Skill List', href: '/pdps/templates' },
 ]);
 
 // Moderator flag from Inertia props
@@ -339,11 +339,11 @@ onMounted(loadTemplates);
 </script>
 
 <template>
-    <Head title="Skill Templates" />
+    <Head title="Skill List" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-4 rounded-xl p-4">
             <Heading
-                title="Skill Templates"
+                title="Skill List"
                 description="Skill template catalogue. Add the necessary skills to your PDP, edit or delete templates."
             />
 
@@ -351,7 +351,7 @@ onMounted(loadTemplates);
                 class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
             >
                 <div class="mb-3 flex items-center justify-between">
-                    <h2 class="text-base font-semibold">Skill Templates</h2>
+                    <h2 class="text-base font-semibold">Skill List</h2>
                     <div class="flex items-center gap-2">
                         <button
                             v-if="isModerator"

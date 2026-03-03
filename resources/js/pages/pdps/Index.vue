@@ -44,7 +44,7 @@ export type PdpSkill = {
 interface Curator { id: number; name?: string; email: string }
 
 const breadcrumbsItems = computed<BreadcrumbItem[]>(() => [
-  { title: activeTab.value === 'Annex' ? 'Annex' : 'PDP List', href: activeTab.value === 'Annex' ? '/pdps?tab=annex' : '/pdps' },
+  { title: activeTab.value === 'Annex' ? 'Annex List' : 'PDP List', href: activeTab.value === 'Annex' ? '/pdps?tab=annex' : '/pdps' },
 ])
 
 // State
@@ -837,11 +837,11 @@ async function refreshUnseen() {
 </script>
 
 <template>
-  <Head :title="activeTab==='Annex' ? 'Annex' : 'PDP List'" />
+  <Head :title="activeTab==='Annex' ? 'Annex List' : 'PDP List'" />
 
   <AppLayout :breadcrumbs="breadcrumbsItems">
     <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-      <Heading :title="activeTab==='Annex' ? 'Annex' : 'PDP List'" :description="activeTab==='Annex' ? 'Annex — a document with approved progress entries.' : 'PDP is a plan that contains a list of skills/tasks to achieve.'" />
+      <Heading :title="activeTab==='Annex' ? 'Annex List' : 'PDP List'" :description="activeTab==='Annex' ? 'Annex — a document with approved progress entries.' : 'PDP is a plan that contains a list of skills/tasks to achieve.'" />
 
       <div class="flex flex-col gap-4">
         <!-- PDP list (top) extracted to component -->
