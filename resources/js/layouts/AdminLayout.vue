@@ -1,21 +1,64 @@
 <script setup lang="ts">
-import AppSidebarLayout from '@/layouts/app/AppSidebarLayout.vue'
-import type { BreadcrumbItemType } from '@/types'
+import AppSidebarLayout from '@/layouts/app/AppSidebarLayout.vue';
+import type { BreadcrumbItemType } from '@/types';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 interface Props {
-  breadcrumbs?: BreadcrumbItemType[]
+    breadcrumbs?: BreadcrumbItemType[];
 }
 
 withDefaults(defineProps<Props>(), {
-  breadcrumbs: () => [],
-})
+    breadcrumbs: () => [],
+});
+
+type AdminTab = {
+    label: string;
+    href: string;
+};
+
+const tabs: AdminTab[] = [
+    { label: 'Overview', href: '/admin' },
+    { label: 'Users', href: '/admin/users' },
+    { label: 'Entries', href: '/admin/entries' },
+    { label: 'Curators', href: '/admin/curators' },
+    { label: 'PDPs', href: '/admin/pdps' },
+];
+
+const page = usePage();
+const currentPath = computed(() => {
+    const raw = String(page.url || '/admin');
+    return raw.split('?')[0] || '/admin';
+});
+
+function isTabActive(href: string): boolean {
+    if (href === '/admin') return currentPath.value === '/admin';
+    return currentPath.value.startsWith(href);
+}
 </script>
 
 <template>
-  <!-- Reuse the unified sidebar layout to avoid duplicate shells/overlapping -->
-  <AppSidebarLayout :breadcrumbs="breadcrumbs">
-    <div class="p-6">
-      <slot />
-    </div>
-  </AppSidebarLayout>
+    <!-- Reuse the unified sidebar layout to avoid duplicate shells/overlapping -->
+    <AppSidebarLayout :breadcrumbs="breadcrumbs">
+        <div class="space-y-4 p-6">
+            <nav
+                class="inline-flex w-full flex-wrap gap-2 rounded-lg border bg-background p-1"
+            >
+                <Link
+                    v-for="tab in tabs"
+                    :key="tab.href"
+                    :href="tab.href"
+                    class="rounded-md px-3 py-1.5 text-sm transition-colors"
+                    :class="
+                        isTabActive(tab.href)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted'
+                    "
+                >
+                    {{ tab.label }}
+                </Link>
+            </nav>
+            <slot />
+        </div>
+    </AppSidebarLayout>
 </template>

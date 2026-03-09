@@ -10,7 +10,7 @@ class AdminUsersController extends Controller
     /**
      * GET /admin/users.json — list users with activity metrics
      * Filter: active_last_days (int)
-     * Fields: user_id, name, email, last_activity_at, pdp_count
+     * Fields: user_id, name, email, pro_level_key, current_level_key, last_activity_at, pdp_count
      */
     public function index(Request $request)
     {
@@ -28,6 +28,8 @@ class AdminUsersController extends Controller
                 'u.id as user_id',
                 'u.name',
                 'u.email',
+                'u.pro_level_key',
+                'u.current_level_key',
                 DB::raw('(SELECT MAX(p.created_at) FROM pdp_skill_criterion_progress p WHERE p.user_id = u.id) as last_activity_at'),
                 DB::raw('(SELECT COUNT(*) FROM pdps d WHERE d.user_id = u.id) as pdp_count'),
             ]);
@@ -62,6 +64,8 @@ class AdminUsersController extends Controller
                     'user_id' => (int)$r->user_id,
                     'name' => (string)$r->name,
                     'email' => (string)$r->email,
+                    'pro_level_key' => $r->pro_level_key !== null ? (string)$r->pro_level_key : null,
+                    'current_level_key' => $r->current_level_key !== null ? (string)$r->current_level_key : null,
                     'last_activity_at' => $r->last_activity_at,
                     'pdp_count' => (int)$r->pdp_count,
                 ];

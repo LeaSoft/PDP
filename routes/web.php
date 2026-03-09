@@ -110,7 +110,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // PDP progress by closed skills (Done)
     Route::get('/pdps/{pdp}/progress.json', [PdpProgressController::class, 'show']);
 
-    // Moderator can adjust level for any user (keep verified requirement)
+    // Moderator or Super Admin can adjust level for any user (keep verified requirement)
     Route::put('/users/{user}/pro-level.json', [UserProfessionalLevelController::class, 'setForUser']);
 
     Route::delete('/pdps/{pdp}/skills/{skill}.json', [PdpSkillController::class, 'destroy']);

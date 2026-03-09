@@ -57,12 +57,14 @@ class UserProfessionalLevelController extends Controller
     }
 
     /**
-     * Moderator: set/override professional level for a specific user.
+     * Moderator or Super Admin: set/override professional level for a specific user.
      */
     public function setForUser(Request $request, User $user)
     {
-        // Only moderators can set level for any user
-        abort_unless($request->user() && $request->user()->is_moderator, Response::HTTP_FORBIDDEN);
+        // Moderators and super admins can set level for any user
+        $actor = $request->user();
+        $canSetForAnyUser = $actor && ($actor->is_moderator || $actor->isSuperAdmin());
+        abort_unless($canSetForAnyUser, Response::HTTP_FORBIDDEN);
 
         $payload = $request->validate([
             'level_key' => ['required','string'],
