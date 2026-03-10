@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, reactive, watch } from 'vue';
 import type { Pdp } from '@/pages/pdps/Index.vue';
+import { defineEmits, defineProps, reactive, watch } from 'vue';
 
 const props = defineProps<{
     open: boolean;
@@ -10,6 +10,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'update:open', v: boolean): void;
     (e: 'save', v: Pdp): void;
+    (e: 'request-delete', id: number): void;
 }>();
 
 const localForm = reactive<Pdp>({
@@ -26,8 +27,7 @@ watch(
     (v) => {
         if (v) Object.assign(localForm, props.form);
     },
-)
-;
+);
 watch(
     () => props.open,
     (isOpen) => {
@@ -44,6 +44,11 @@ function close() {
 }
 function save() {
     emit('save', { ...localForm });
+}
+
+function requestDelete() {
+    if (!props.editingId) return;
+    emit('request-delete', props.editingId);
 }
 </script>
 
@@ -123,6 +128,28 @@ function save() {
                     ></textarea>
                 </div>
             </div>
+
+            <details
+                v-if="props.editingId"
+                class="mt-4 rounded-md border border-destructive/30 p-3"
+            >
+                <summary
+                    class="cursor-pointer text-xs font-medium text-muted-foreground"
+                >
+                    Danger zone
+                </summary>
+                <div class="mt-3 flex items-center justify-between gap-2">
+                    <p class="text-xs text-muted-foreground">
+                        Delete this PDP and all its skills.
+                    </p>
+                    <button
+                        class="rounded border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        @click="requestDelete"
+                    >
+                        Delete PDP
+                    </button>
+                </div>
+            </details>
 
             <div class="mt-4 flex justify-end gap-2">
                 <button
