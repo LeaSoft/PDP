@@ -142,7 +142,7 @@ const hasSharedPdps = computed(() => props.sharedPdps.length > 0);
                     </div>
                     <div class="mt-2 flex gap-2">
                         <button
-                            class="rounded border px-2 py-1 text-[11px] hover:bg-muted"
+                            class="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground shadow-sm transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-none"
                             @click.stop="emit('openEditPdp', p)"
                         >
                             Edit
