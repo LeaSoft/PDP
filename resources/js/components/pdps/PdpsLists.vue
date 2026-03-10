@@ -42,7 +42,7 @@ const hasSharedPdps = computed(() => props.sharedPdps.length > 0);
         <div class="mb-3 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <h2 class="flex items-center gap-2 text-base font-semibold">
-                    Your PDPs
+                    My PDPs
                     <span
                         class="inline-flex min-w-[18px] items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground"
                         >{{ pdps.length }}</span
@@ -160,7 +160,7 @@ const hasSharedPdps = computed(() => props.sharedPdps.length > 0);
             <div class="mb-3 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <h2 class="flex items-center gap-2 text-base font-semibold">
-                        Shared PDPs
+                        My Mentees' PDPs
                         <span
                             class="inline-flex min-w-[18px] items-center justify-center rounded-md border px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground"
                             >{{ sharedPdps.length }}</span
