@@ -21,6 +21,7 @@ const pageNum = ref(1);
 const perPage = ref(20);
 const sortBy = ref('pending_entries_count');
 const sortDir = ref<'asc' | 'desc'>('desc');
+const nudgingCuratorId = ref<number | null>(null);
 
 const overloaded = ref<number | null>(
     new URLSearchParams(location.search).get('overloaded')
@@ -94,13 +95,18 @@ function rowClass(r: Row) {
 }
 
 async function nudge(row: Row) {
+    if (nudgingCuratorId.value === row.curator_id) return;
+
+    nudgingCuratorId.value = row.curator_id;
     try {
         await fetchJson(`/admin/curators/${row.curator_id}/nudge.json`, {
             method: 'POST',
         });
-        notifySuccess(`Nudged ${row.curator_name}`);
+        notifySuccess(`Nudge sent to mentor: ${row.curator_name}`);
     } catch (e: any) {
         notifyError(e?.message || 'Failed to nudge mentor');
+    } finally {
+        nudgingCuratorId.value = null;
     }
 }
 </script>
@@ -154,10 +160,15 @@ async function nudge(row: Row) {
         >
             <template #cell:actions="{ row }">
                 <button
-                    class="rounded border px-2 py-1 text-xs"
+                    class="rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-primary/50 dark:bg-primary/15"
+                    :disabled="nudgingCuratorId === row.curator_id"
                     @click="nudge(row)"
                 >
-                    Nudge
+                    {{
+                        nudgingCuratorId === row.curator_id
+                            ? 'Sending...'
+                            : 'Nudge'
+                    }}
                 </button>
             </template>
         </AdminTable>
