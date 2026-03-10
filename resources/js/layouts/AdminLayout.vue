@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Toaster from '@/components/ui/Toaster.vue';
 import AppSidebarLayout from '@/layouts/app/AppSidebarLayout.vue';
 import type { BreadcrumbItemType } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -61,5 +62,6 @@ function isTabActive(href: string): boolean {
             </nav>
             <slot />
         </div>
+        <Toaster />
     </AppSidebarLayout>
 </template>
