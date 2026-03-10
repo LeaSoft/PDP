@@ -6,6 +6,7 @@ import PdpFormModal from '@/components/pdps/modals/PdpFormModal.vue';
 import SkillFormModal from '@/components/pdps/modals/SkillFormModal.vue';
 import PdpsLists from '@/components/pdps/PdpsLists.vue';
 import { confirmDialog } from '@/composables/useConfirm';
+import { useEscapableModal } from '@/composables/useEscapableModal';
 import { notifyError, notifySuccess } from '@/composables/useNotify';
 import { getJsPdfCtor } from '@/composables/usePdfExport';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -217,6 +218,12 @@ const progressState = reactive<{
     editingNoteId: null,
     noteDrafts: {},
 });
+
+function closeProgressModal() {
+    showProgressModal.value = false;
+}
+
+useEscapableModal(showProgressModal, closeProgressModal);
 
 async function openProgressModal(s: PdpSkill, index: number) {
     const items = parseCriteriaItems(s.criteria);
@@ -1228,7 +1235,7 @@ async function refreshUnseen() {
                         <h3 class="text-base font-semibold">Progress</h3>
                         <button
                             class="rounded p-1 text-muted-foreground hover:bg-muted"
-                            @click="showProgressModal = false"
+                            @click="closeProgressModal"
                         >
                             ✕
                         </button>

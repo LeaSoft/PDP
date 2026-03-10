@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
-import { notifySuccess, notifyError } from '@/composables/useNotify';
+import { useEscapableModal } from '@/composables/useEscapableModal';
+import { notifyError, notifySuccess } from '@/composables/useNotify';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { fetchJson } from '@/lib/csrf';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
 interface TemplateItem {
     key: string;
@@ -109,6 +110,10 @@ function openCreate() {
     newTemplate.value = { title: '', description: '', skills: [] };
     showCreateModal.value = true;
 }
+
+function closeCreateModal() {
+    showCreateModal.value = false;
+}
 async function addSkillRow() {
     newTemplate.value.skills.push({
         skill: '',
@@ -166,7 +171,7 @@ async function createTemplate() {
             body: JSON.stringify(payload),
         });
         notifySuccess('Template created');
-        showCreateModal.value = false;
+        closeCreateModal();
         await loadTemplates();
     } catch (e: any) {
         notifyError('Failed to create template: ' + (e?.message || 'Error'));
@@ -188,6 +193,10 @@ const editTemplate = ref<{
     description?: string;
     skills: EditSkill[];
 }>({ title: '', description: '', skills: [] });
+
+function closeEditModal() {
+    showEditModal.value = false;
+}
 
 async function openEdit(key: string) {
     try {
@@ -309,7 +318,7 @@ async function saveEdit() {
             { method: 'PUT', body: JSON.stringify(payload) },
         );
         notifySuccess('Template updated');
-        showEditModal.value = false;
+        closeEditModal();
         editingKey.value = null;
         await loadTemplates();
     } catch (e: any) {
@@ -334,6 +343,10 @@ async function assign(key: string) {
     // Open Assign-to-PDP modal instead of creating a new PDP
     await openAssignModal(key);
 }
+
+useEscapableModal(showCreateModal, closeCreateModal);
+useEscapableModal(showEditModal, closeEditModal);
+useEscapableModal(showAssignModal, closeAssignModal);
 
 onMounted(loadTemplates);
 </script>
@@ -429,7 +442,7 @@ onMounted(loadTemplates);
             <!-- Create Template Modal -->
             <div
                 v-if="showCreateModal"
-                class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto"
+                class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
             >
                 <div
                     class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"
@@ -440,7 +453,7 @@ onMounted(loadTemplates);
                         </h3>
                         <button
                             class="rounded p-1 text-muted-foreground hover:bg-muted"
-                            @click="showCreateModal = false"
+                            @click="closeCreateModal"
                         >
                             ✕
                         </button>
@@ -551,7 +564,7 @@ onMounted(loadTemplates);
                         <div class="mt-2 flex justify-end gap-2">
                             <button
                                 class="rounded-md border px-3 py-2 text-xs hover:bg-muted"
-                                @click="showCreateModal = false"
+                                @click="closeCreateModal"
                             >
                                 Cancel
                             </button>
@@ -569,7 +582,7 @@ onMounted(loadTemplates);
             <!-- Edit Template Modal -->
             <div
                 v-if="showEditModal"
-                class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto"
+                class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
             >
                 <div
                     class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"
@@ -580,7 +593,7 @@ onMounted(loadTemplates);
                         </h3>
                         <button
                             class="rounded p-1 text-muted-foreground hover:bg-muted"
-                            @click="showEditModal = false"
+                            @click="closeEditModal"
                         >
                             ✕
                         </button>
@@ -706,7 +719,7 @@ onMounted(loadTemplates);
                         <div class="mt-2 flex justify-end gap-2">
                             <button
                                 class="rounded-md border px-3 py-2 text-xs hover:bg-muted"
-                                @click="showEditModal = false"
+                                @click="closeEditModal"
                             >
                                 Cancel
                             </button>
@@ -724,7 +737,7 @@ onMounted(loadTemplates);
             <!-- Assign Template Skills to PDP Modal -->
             <div
                 v-if="showAssignModal"
-                class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto"
+                class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
             >
                 <div
                     class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"

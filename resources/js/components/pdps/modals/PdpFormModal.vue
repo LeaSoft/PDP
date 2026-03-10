@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useEscapableModal } from '@/composables/useEscapableModal';
 import type { Pdp } from '@/pages/pdps/Index.vue';
-import { defineEmits, defineProps, reactive, watch } from 'vue';
+import { computed, defineEmits, defineProps, reactive, watch } from 'vue';
 
 const props = defineProps<{
     open: boolean;
@@ -50,6 +51,11 @@ function requestDelete() {
     if (!props.editingId) return;
     emit('request-delete', props.editingId);
 }
+
+useEscapableModal(
+    computed(() => props.open),
+    close,
+);
 </script>
 
 <template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { useEscapableModal } from '@/composables/useEscapableModal'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 
 const open = ref(false)
 const message = ref('')
@@ -17,6 +18,8 @@ function close(v: boolean) {
   if (resolver) resolver(v)
   resolver = null
 }
+
+useEscapableModal(computed(() => open.value), () => close(false))
 
 onMounted(() => {
   window.addEventListener('app:confirm:open', onOpen as EventListener)
