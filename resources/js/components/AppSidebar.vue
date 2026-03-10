@@ -70,7 +70,14 @@ const mainNavItems = computed<NavItem[]>(() => {
         },
     ];
 
-    // Add "Mentees List" if user is a curator
+    // Core item shown for all users
+    items.push({
+        title: 'Skill List',
+        href: '/pdps/templates',
+        icon: Layers,
+    });
+
+    // Add "Mentees List" for curators after all core items
     if (isCurator.value) {
         items.push({
             title: 'Mentees List',
@@ -83,21 +90,14 @@ const mainNavItems = computed<NavItem[]>(() => {
         });
     }
 
-    // Add Admin only for super admins
+    // Add Admin only for super admins and keep it last in the list
     if (isSuperAdmin.value) {
         items.push({
-            title: 'Admin',
+            title: 'Admin panel',
             href: '/admin',
             icon: LayoutGrid,
         });
     }
-
-    // Always add "Skill List" last
-    items.push({
-        title: 'Skill List',
-        href: '/pdps/templates',
-        icon: Layers,
-    });
 
     return items;
 });

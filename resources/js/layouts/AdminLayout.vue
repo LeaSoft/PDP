@@ -48,12 +48,13 @@ function isTabActive(href: string): boolean {
                     v-for="tab in tabs"
                     :key="tab.href"
                     :href="tab.href"
-                    class="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground dark:hover:bg-muted/80"
+                    class="rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                     :class="
                         isTabActive(tab.href)
-                            ? 'bg-primary text-primary-foreground'
-                            : ''
+                            ? 'bg-primary text-primary-foreground hover:bg-primary/95 dark:hover:bg-primary/95'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground dark:hover:bg-muted/80'
                     "
+                    :aria-current="isTabActive(tab.href) ? 'page' : undefined"
                 >
                     {{ tab.label }}
                 </Link>
