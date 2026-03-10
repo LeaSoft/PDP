@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { statusBadgeClass } from '@/utils/status';
 import { parseCriteriaItems } from '@/utils/criteria';
+import { statusBadgeClass } from '@/utils/status';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 export type Pdp = {
     id: number;
@@ -38,7 +38,10 @@ defineProps<{
     curatorEmail: string;
     userOptions: Curator[];
     showUserDropdown: boolean;
-    unseenByCriterion?: Record<string, { ids: number[]; types: Array<'approved' | 'rejected' | 'comment'> }>;
+    unseenByCriterion?: Record<
+        string,
+        { ids: number[]; types: Array<'approved' | 'rejected' | 'comment'> }
+    >;
     unseenTotals?: { approved: number; rejected: number; commented: number };
 }>();
 
@@ -79,23 +82,64 @@ function onEmailInput(v: string) {
     <template v-if="selectedPdp">
         <h3 class="mb-1 text-lg font-semibold">{{ selectedPdp.title }}</h3>
         <!-- PDP totals for unseen approvals/rejections/comments -->
-        <div v-if="unseenTotals && (unseenTotals.approved || unseenTotals.rejected || unseenTotals.commented)"
-             class="mb-2 flex gap-2 text-xs">
-            <span v-if="unseenTotals.approved" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
-                    <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.414l-7.5 7.5a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.793-6.793a1 1 0 011.414 0z" clip-rule="evenodd" />
+        <div
+            v-if="
+                unseenTotals &&
+                (unseenTotals.approved ||
+                    unseenTotals.rejected ||
+                    unseenTotals.commented)
+            "
+            class="mb-2 flex gap-2 text-xs"
+        >
+            <span
+                v-if="unseenTotals.approved"
+                class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="h-3 w-3"
+                >
+                    <path
+                        fill-rule="evenodd"
+                        d="M16.704 5.29a1 1 0 010 1.414l-7.5 7.5a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.793-6.793a1 1 0 011.414 0z"
+                        clip-rule="evenodd"
+                    />
                 </svg>
                 {{ unseenTotals.approved }} Approved
             </span>
-            <span v-if="unseenTotals.rejected" class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm2.828-11.172a1 1 0 00-1.414-1.414L10 6.828 8.586 5.414a1 1 0 00-1.414 1.414L8.586 8 7.172 9.414a1 1 0 101.414 1.414L10 9.414l1.414 1.414a1 1 0 001.414-1.414L11.414 8l1.414-1.172z" clip-rule="evenodd" />
+            <span
+                v-if="unseenTotals.rejected"
+                class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="h-3 w-3"
+                >
+                    <path
+                        fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm2.828-11.172a1 1 0 00-1.414-1.414L10 6.828 8.586 5.414a1 1 0 00-1.414 1.414L8.586 8 7.172 9.414a1 1 0 101.414 1.414L10 9.414l1.414 1.414a1 1 0 001.414-1.414L11.414 8l1.414-1.172z"
+                        clip-rule="evenodd"
+                    />
                 </svg>
                 {{ unseenTotals.rejected }} Rejected
             </span>
-            <span v-if="unseenTotals.commented" class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
-                    <path d="M18 10c0 3.866-3.582 7-8 7a9.225 9.225 0 01-2.9-.46L4 17l.46-3.1A7.827 7.827 0 013 10c0-3.866 3.582-7 8-7s7 3.134 7 7z" />
+            <span
+                v-if="unseenTotals.commented"
+                class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="h-3 w-3"
+                >
+                    <path
+                        d="M18 10c0 3.866-3.582 7-8 7a9.225 9.225 0 01-2.9-.46L4 17l.46-3.1A7.827 7.827 0 013 10c0-3.866 3.582-7 8-7s7 3.134 7 7z"
+                    />
                 </svg>
                 {{ unseenTotals.commented }} Commented
             </span>
@@ -122,10 +166,7 @@ function onEmailInput(v: string) {
             id="pdp-share"
         >
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div
-                    ref="userPickerRef"
-                    class="relative w-full sm:max-w-xs"
-                >
+                <div ref="userPickerRef" class="relative w-full sm:max-w-xs">
                     <input
                         :value="curatorEmail"
                         @input="
@@ -152,7 +193,7 @@ function onEmailInput(v: string) {
                             emit('update:showUserDropdown', false)
                         "
                         type="text"
-                        placeholder="Enter curator email or name"
+                        placeholder="Enter mentor email or name"
                         class="w-full rounded border px-2 py-1 text-sm"
                         autocomplete="off"
                         autocapitalize="none"
@@ -163,7 +204,7 @@ function onEmailInput(v: string) {
                     />
                     <ul
                         v-if="showUserDropdown"
-                        class="absolute z-50 mt-1 max-h-56 w-full sm:w-[22rem] overflow-auto rounded-md border bg-background shadow"
+                        class="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-background shadow sm:w-[22rem]"
                     >
                         <li
                             v-for="u in userOptions"
@@ -193,7 +234,7 @@ function onEmailInput(v: string) {
                         class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
                         @click="emit('assignCurator')"
                     >
-                        Assign curator
+                        Assign mentor
                     </button>
                     <button
                         class="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
@@ -226,7 +267,7 @@ function onEmailInput(v: string) {
                     }}</span>
                     <button
                         class="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md border text-[11px] hover:bg-muted"
-                        title="Remove curator"
+                        title="Remove mentor"
                         @click="emit('removeCurator', c)"
                     >
                         ×
@@ -299,11 +340,24 @@ function onEmailInput(v: string) {
                                                 >{{ c.text }}</span
                                             >
                                             <!-- attention dot for unseen curator actions for this criterion -->
-                                            <span v-if="unseenByCriterion && unseenByCriterion[`${s.pdp_id}:${s.id}:${i}`]"
-                                                  class="ml-2 inline-flex items-center">
-                                                <span class="relative inline-flex">
-                                                  <span class="absolute inline-flex h-2 w-2 rounded-full bg-amber-400 opacity-75 animate-ping"></span>
-                                                  <span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+                                            <span
+                                                v-if="
+                                                    unseenByCriterion &&
+                                                    unseenByCriterion[
+                                                        `${s.pdp_id}:${s.id}:${i}`
+                                                    ]
+                                                "
+                                                class="ml-2 inline-flex items-center"
+                                            >
+                                                <span
+                                                    class="relative inline-flex"
+                                                >
+                                                    <span
+                                                        class="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-amber-400 opacity-75"
+                                                    ></span>
+                                                    <span
+                                                        class="relative inline-flex h-2 w-2 rounded-full bg-amber-500"
+                                                    ></span>
                                                 </span>
                                             </span>
                                             <span

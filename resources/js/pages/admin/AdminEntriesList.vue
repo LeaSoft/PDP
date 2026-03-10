@@ -45,7 +45,7 @@ const columns = [
     { key: 'skill_name', label: 'Skill' },
     { key: 'status', label: 'Status', sortable: true },
     { key: 'days_pending', label: 'Days Pending', sortable: true },
-    { key: 'assigned_curator_name', label: 'Curator' },
+    { key: 'assigned_curator_name', label: 'Mentor' },
 ];
 
 function toQuery() {
@@ -141,7 +141,7 @@ function rowClass(r: Row) {
                     />
                 </label>
                 <label
-                    >Curator ID
+                    >Mentor ID
                     <input
                         class="ml-1 w-24 rounded border border-border/80 bg-background px-2 py-1 text-foreground"
                         type="number"

@@ -29,7 +29,7 @@ const status = ref<string | null>(
 const columns = [
     { key: 'title', label: 'Title', sortable: true },
     { key: 'owner_name', label: 'Owner', sortable: true },
-    { key: 'curator_name', label: 'Curator', sortable: true },
+    { key: 'curator_name', label: 'Mentor', sortable: true },
     { key: 'active_entries_count', label: 'Active Entries', sortable: true },
     { key: 'pending_entries_count', label: 'Pending Entries', sortable: true },
 ];

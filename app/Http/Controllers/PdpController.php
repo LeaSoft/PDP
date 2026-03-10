@@ -276,7 +276,7 @@ class PdpController extends Controller
         abort_unless($pdp->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
         // Prevent removing the owner even if somehow present
         if ($user->id === $pdp->user_id) {
-            return response()->json(['message' => 'Cannot remove the owner from curators'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return response()->json(['message' => 'Cannot remove the owner from mentors'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $pdp->curators()->detach($user->id);
         return response()->noContent();

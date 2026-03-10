@@ -98,13 +98,13 @@ const rows = computed<MetricRow[]>(() => {
                       : 'bad',
         },
         {
-            label: 'Curators — Total',
+            label: 'Mentors — Total',
             value: data.value.curators.total,
             href: '/admin/curators',
             tone: data.value.curators.total > 0 ? 'good' : 'neutral',
         },
         {
-            label: 'Curators — Overloaded',
+            label: 'Mentors — Overloaded',
             value: data.value.curators.overloaded,
             href: '/admin/curators?overloaded=1',
             tone: data.value.curators.overloaded === 0 ? 'good' : 'bad',

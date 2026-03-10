@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { fetchJson } from '@/lib/csrf';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import { fetchJson } from '@/lib/csrf';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -281,7 +281,11 @@ onUnmounted(() => {
                                                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                                                         : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                                 "
-                                                >{{ it.role }}</span
+                                                >{{
+                                                    it.role === 'owner'
+                                                        ? 'Owner'
+                                                        : 'Mentor'
+                                                }}</span
                                             >
                                         </div>
                                         <div

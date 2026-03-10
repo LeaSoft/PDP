@@ -581,7 +581,7 @@ async function buildAnnexPdf(JsPDFCtor: any, data: any) {
         : curators.value;
     const curatorsLine =
         curatorsList && curatorsList.length
-            ? `Curators: ${curatorsList.map((c: any) => c.name || c.email).join(', ')}`
+            ? `Mentors: ${curatorsList.map((c: any) => c.name || c.email).join(', ')}`
             : '';
     const metaLine = meta.join(' · ');
     const infoCombined = [metaLine, ownerLine, curatorsLine]
@@ -905,10 +905,10 @@ async function assignCurator() {
             const exists = curators.value.some((c) => c.id === res.curator.id);
             if (!exists) curators.value.push(res.curator as Curator);
         }
-        notifySuccess('Curator assigned');
+        notifySuccess('Mentor assigned');
         curatorEmail.value = '';
     } catch (e: any) {
-        notifyError('Failed to assign curator: ' + (e?.message || 'Error'));
+        notifyError('Failed to assign mentor: ' + (e?.message || 'Error'));
     }
 }
 
@@ -916,7 +916,7 @@ async function removeCurator(c: Curator) {
     if (!selectedPdpId.value) return;
     {
         const ok = await confirmDialog(
-            `Remove ${c.name || c.email} from curators?`,
+            `Remove ${c.name || c.email} from mentors?`,
         );
         if (!ok) return;
     }
@@ -926,7 +926,7 @@ async function removeCurator(c: Curator) {
         });
         curators.value = curators.value.filter((x) => x.id !== c.id);
     } catch (e: any) {
-        notifyError('Failed to remove curator: ' + (e?.message || 'Error'));
+        notifyError('Failed to remove mentor: ' + (e?.message || 'Error'));
     }
 }
 
@@ -1278,9 +1278,7 @@ async function refreshUnseen() {
                                                 class="flex items-center gap-2"
                                             >
                                                 <span
-                                                    >{{
-                                                        e.user?.name || 'You'
-                                                    }}
+                                                    >{{ e.user?.name || 'You' }}
                                                     ·
                                                     {{
                                                         formatKyivDateTime(
@@ -1446,7 +1444,7 @@ async function refreshUnseen() {
                                             <div
                                                 class="mb-0.5 text-[10px] text-muted-foreground"
                                             >
-                                                Curator comment
+                                                Mentor comment
                                             </div>
                                             <div class="whitespace-pre-line">
                                                 {{ e.curator_comment }}

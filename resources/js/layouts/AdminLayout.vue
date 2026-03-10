@@ -21,7 +21,7 @@ const tabs: AdminTab[] = [
     { label: 'Overview', href: '/admin' },
     { label: 'Users', href: '/admin/users' },
     { label: 'Entries', href: '/admin/entries' },
-    { label: 'Curators', href: '/admin/curators' },
+    { label: 'Mentors', href: '/admin/curators' },
     { label: 'PDPs', href: '/admin/pdps' },
 ];
 

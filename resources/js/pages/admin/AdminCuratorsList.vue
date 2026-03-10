@@ -29,7 +29,7 @@ const overloaded = ref<number | null>(
 );
 
 const columns = [
-    { key: 'curator_name', label: 'Curator', sortable: true },
+    { key: 'curator_name', label: 'Mentor', sortable: true },
     { key: 'total_assigned_users', label: 'Assigned Users', sortable: true },
     { key: 'pending_entries_count', label: 'Pending Entries', sortable: true },
     {
@@ -58,7 +58,7 @@ async function load() {
         rows.value = Array.isArray(res?.data) ? res.data : [];
         total.value = Number(res?.meta?.total || 0);
     } catch (e: any) {
-        notifyError(e?.message || 'Failed to load curators');
+        notifyError(e?.message || 'Failed to load mentors');
     } finally {
         loading.value = false;
     }
@@ -100,7 +100,7 @@ async function nudge(row: Row) {
         });
         notifySuccess(`Nudged ${row.curator_name}`);
     } catch (e: any) {
-        notifyError(e?.message || 'Failed to nudge curator');
+        notifyError(e?.message || 'Failed to nudge mentor');
     }
 }
 </script>
@@ -108,7 +108,7 @@ async function nudge(row: Row) {
 <template>
     <AdminLayout>
         <div class="mb-4 flex items-center justify-between">
-            <h1 class="text-lg font-semibold">Curators</h1>
+            <h1 class="text-lg font-semibold">Mentors</h1>
             <div class="flex items-center gap-2 text-xs">
                 <label
                     >Overloaded only
