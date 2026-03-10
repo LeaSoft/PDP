@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { usePage } from '@inertiajs/vue3'
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -13,18 +11,45 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { usePendingApprovalsCount } from '@/composables/usePendingApprovalsCount';
+import { fetchJson } from '@/lib/csrf';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, LayoutGrid, List, FileText, Layers, Users } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import {
+    BookOpen,
+    FileText,
+    Layers,
+    LayoutGrid,
+    List,
+    Users,
+} from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
 import AppLogo from './AppLogo.vue';
-import { fetchJson } from '@/lib/csrf';
-import { usePendingApprovalsCount } from '@/composables/usePendingApprovalsCount';
 
-const isCurator = ref(false);
-const page = usePage<{ auth: { user: { super_admin?: boolean } | null } }>()
-const isSuperAdmin = computed(() => !!page.props.auth?.user?.super_admin)
-const { pendingApprovalsCount, loadPendingApprovalsCount } = usePendingApprovalsCount();
+const CURATOR_STATUS_CACHE_KEY = 'pdp:is_curator';
+
+function readCuratorStatusCache(): boolean {
+    try {
+        return sessionStorage.getItem(CURATOR_STATUS_CACHE_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function writeCuratorStatusCache(value: boolean) {
+    try {
+        sessionStorage.setItem(CURATOR_STATUS_CACHE_KEY, value ? '1' : '0');
+    } catch {
+        // Ignore storage errors; runtime state still works.
+    }
+}
+
+const isCurator = ref(readCuratorStatusCache());
+const page = usePage<{ auth: { user: { super_admin?: boolean } | null } }>();
+const isSuperAdmin = computed(() => !!page.props.auth?.user?.super_admin);
+const { pendingApprovalsCount, loadPendingApprovalsCount } =
+    usePendingApprovalsCount();
 
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -51,7 +76,10 @@ const mainNavItems = computed<NavItem[]>(() => {
             title: 'Mentees List',
             href: '/curator/mentees',
             icon: Users,
-            badge: pendingApprovalsCount.value > 0 ? pendingApprovalsCount.value : undefined,
+            badge:
+                pendingApprovalsCount.value > 0
+                    ? pendingApprovalsCount.value
+                    : undefined,
         });
     }
 
@@ -61,7 +89,7 @@ const mainNavItems = computed<NavItem[]>(() => {
             title: 'Admin',
             href: '/admin',
             icon: LayoutGrid,
-        })
+        });
     }
 
     // Always add "Skill List" last
@@ -86,14 +114,20 @@ const footerNavItems: NavItem[] = [
 async function checkCuratorStatus() {
     try {
         const shared = await fetchJson('/pdps.shared.json');
-        if (Array.isArray(shared) && shared.length > 0) {
-            isCurator.value = true;
-            // Load pending approvals count for curators
+        const nextIsCurator = Array.isArray(shared) && shared.length > 0;
+        isCurator.value = nextIsCurator;
+        writeCuratorStatusCache(nextIsCurator);
+
+        if (nextIsCurator) {
+            // Load pending approvals count for mentors/curators
             await loadPendingApprovalsCount();
         }
     } catch {
-        // Silently fail - user is not a curator or error occurred
-        isCurator.value = false;
+        // Keep cached/runtime value to avoid nav flicker on transient failures.
+        // If user is already known as curator, try to refresh the badge anyway.
+        if (isCurator.value) {
+            await loadPendingApprovalsCount().catch(() => undefined);
+        }
     }
 }
 
