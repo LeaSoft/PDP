@@ -201,7 +201,7 @@ onMounted(() => {
             </template>
             <template #cell:actions="{ row }">
                 <select
-                    class="w-full rounded border px-2 py-1 text-xs"
+                    class="w-full rounded border border-border/80 bg-background px-2 py-1 text-xs text-foreground"
                     :value="row.pro_level_key ?? ''"
                     :disabled="
                         changingLevelFor === row.user_id || levels.length === 0

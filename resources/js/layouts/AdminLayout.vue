@@ -42,17 +42,17 @@ function isTabActive(href: string): boolean {
     <AppSidebarLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 p-6">
             <nav
-                class="inline-flex w-full flex-wrap gap-2 rounded-lg border bg-background p-1"
+                class="inline-flex w-full flex-wrap gap-2 rounded-lg border border-border/70 bg-muted/20 p-1 dark:border-border/60 dark:bg-muted/10"
             >
                 <Link
                     v-for="tab in tabs"
                     :key="tab.href"
                     :href="tab.href"
-                    class="rounded-md px-3 py-1.5 text-sm transition-colors"
+                    class="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground dark:hover:bg-muted/80"
                     :class="
                         isTabActive(tab.href)
                             ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-muted'
+                            : ''
                     "
                 >
                     {{ tab.label }}

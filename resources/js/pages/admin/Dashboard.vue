@@ -113,9 +113,9 @@ const rows = computed<MetricRow[]>(() => {
 });
 
 function rowToneClass(tone: MetricRow['tone']) {
-    if (tone === 'good') return 'bg-emerald-50/60';
-    if (tone === 'warn') return 'bg-amber-50/70';
-    if (tone === 'bad') return 'bg-rose-50/70';
+    if (tone === 'good') return 'bg-emerald-50/60 dark:bg-emerald-950/30';
+    if (tone === 'warn') return 'bg-amber-50/70 dark:bg-amber-950/30';
+    if (tone === 'bad') return 'bg-rose-50/70 dark:bg-rose-950/35';
     return '';
 }
 </script>
@@ -143,7 +143,7 @@ function rowToneClass(tone: MetricRow['tone']) {
 
             <div
                 v-if="error"
-                class="mb-5 rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-700"
+                class="mb-5 rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/35 dark:text-rose-200"
             >
                 {{ error }}
             </div>
@@ -187,7 +187,7 @@ function rowToneClass(tone: MetricRow['tone']) {
                             <td class="px-3 py-2">
                                 <Link
                                     :href="row.href"
-                                    class="rounded border px-2 py-1 text-xs hover:bg-muted"
+                                    class="rounded border px-2 py-1 text-xs hover:bg-muted dark:border-border/70 dark:hover:bg-muted/80"
                                 >
                                     Open tab
                                 </Link>

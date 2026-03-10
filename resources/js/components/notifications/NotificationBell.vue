@@ -1,38 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import axios from 'axios';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const open = ref(false);
 const notifications = ref([]);
 const unreadCount = ref(0);
 const listRef = ref<HTMLElement | null>(null);
 const showFade = ref(false);
-const styleMap = {
-    approved: {
-        icon: 'M4.5 12.75l6 6 9-13.5',
-        bg: 'bg-green-50 dark:bg-green-900/30',
-        border: 'border-green-200 dark:border-green-700',
-        text: 'text-green-800 dark:text-green-200',
-    },
-    comment: {
-        icon: 'M7.5 12h9m-9 4h6m-6-8h9',
-        bg: 'bg-blue-50 dark:bg-blue-900/30',
-        border: 'border-blue-200 dark:border-blue-700',
-        text: 'text-blue-800 dark:text-blue-200',
-    },
-    info: {
-        icon: 'M12 6v6m0 4h.01',
-        bg: 'bg-gray-100 dark:bg-gray-700/40',
-        border: 'border-gray-300 dark:border-gray-600',
-        text: 'text-gray-900 dark:text-gray-200',
-    },
-    warning: {
-        icon: 'M12 9v2m0 4h.01M12 5l7 14H5l7-14z',
-        bg: 'bg-amber-50 dark:bg-amber-900/30',
-        border: 'border-amber-200 dark:border-amber-700',
-        text: 'text-amber-900 dark:text-amber-200',
-    },
-};
 
 const load = async () => {
     const res = await axios.get('/notifications.unread.json');
@@ -51,11 +25,17 @@ const onNotificationsChanged = () => {
 };
 
 onMounted(() => {
-    window.addEventListener('notifications:changed', onNotificationsChanged as any);
+    window.addEventListener(
+        'notifications:changed',
+        onNotificationsChanged as any,
+    );
 });
 
 onBeforeUnmount(() => {
-    window.removeEventListener('notifications:changed', onNotificationsChanged as any);
+    window.removeEventListener(
+        'notifications:changed',
+        onNotificationsChanged as any,
+    );
 });
 
 const toggle = () => {
@@ -201,49 +181,65 @@ const hasUnread = computed(() => notifications.value.some((n) => n.read === 0));
                     :key="n.id"
                     @click="openNotification(n)"
                     :class="[
-                        'group cursor-pointer mb-3 p-4 rounded-2xl border backdrop-blur-xl transition-all duration-300',
-                        'shadow-[0_4px_22px_-6px_rgba(0,0,0,0.10)] hover:shadow-[0_6px_30px_-4px_rgba(0,0,0,0.18)] hover:-translate-y-0.5',
-                        n.type === 'success' && 'bg-green-50/70 border-green-200/50 hover:bg-green-50/90',
-                        n.type === 'comment' && 'bg-blue-50/70 border-blue-200/50 hover:bg-blue-50/90',
-                        n.type === 'warning' && 'bg-yellow-50/70 border-yellow-200/50 hover:bg-yellow-50/90',
-                        n.type === 'info' && 'bg-gray-50/70 border-gray-200/50 hover:bg-gray-50/90',
+                        'group mb-3 cursor-pointer rounded-2xl border p-4 backdrop-blur-xl transition-all duration-300',
+                        'shadow-[0_4px_22px_-6px_rgba(0,0,0,0.10)] hover:-translate-y-0.5 hover:shadow-[0_6px_30px_-4px_rgba(0,0,0,0.18)] dark:shadow-[0_4px_22px_-6px_rgba(0,0,0,0.35)] dark:hover:shadow-[0_6px_30px_-4px_rgba(0,0,0,0.5)]',
+                        n.type === 'success' &&
+                            'border-green-200/50 bg-green-50/70 hover:bg-green-50/90 dark:border-green-900/45 dark:bg-green-950/35 dark:hover:bg-green-900/40',
+                        n.type === 'comment' &&
+                            'border-blue-200/50 bg-blue-50/70 hover:bg-blue-50/90 dark:border-blue-900/45 dark:bg-blue-950/35 dark:hover:bg-blue-900/40',
+                        n.type === 'warning' &&
+                            'border-yellow-200/50 bg-yellow-50/70 hover:bg-yellow-50/90 dark:border-yellow-900/45 dark:bg-yellow-950/35 dark:hover:bg-yellow-900/40',
+                        n.type === 'info' &&
+                            'border-gray-200/50 bg-gray-50/70 hover:bg-gray-50/90 dark:border-gray-700/60 dark:bg-gray-900/40 dark:hover:bg-gray-800/60',
                     ]"
                 >
                     <div class="flex items-start gap-3">
-                        <div class="shrink-0 mt-1">
-
-                            <div v-if="n.type === 'success'"
-                                 class="h-8 w-8 flex items-center justify-center rounded-xl bg-green-100 text-green-600 shadow-inner text-lg">
+                        <div class="mt-1 shrink-0">
+                            <div
+                                v-if="n.type === 'success'"
+                                class="flex h-8 w-8 items-center justify-center rounded-xl bg-green-100 text-lg text-green-600 shadow-inner dark:bg-green-900/45 dark:text-green-300"
+                            >
                                 ✓
                             </div>
 
-                            <div v-else-if="n.type === 'comment'"
-                                 class="h-8 w-8 flex items-center justify-center rounded-xl bg-blue-100 text-blue-600 shadow-inner text-lg">
+                            <div
+                                v-else-if="n.type === 'comment'"
+                                class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-lg text-blue-600 shadow-inner dark:bg-blue-900/45 dark:text-blue-300"
+                            >
                                 💬
                             </div>
 
-                            <div v-else-if="n.type === 'warning'"
-                                 class="h-8 w-8 flex items-center justify-center rounded-xl bg-yellow-100 text-yellow-700 shadow-inner text-lg">
+                            <div
+                                v-else-if="n.type === 'warning'"
+                                class="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-100 text-lg text-yellow-700 shadow-inner dark:bg-yellow-900/45 dark:text-yellow-300"
+                            >
                                 ⚠️
                             </div>
 
-                            <div v-else
-                                 class="h-8 w-8 flex items-center justify-center rounded-xl bg-gray-200 text-gray-700 shadow-inner text-lg">
+                            <div
+                                v-else
+                                class="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-200 text-lg text-gray-700 shadow-inner dark:bg-gray-700 dark:text-gray-300"
+                            >
                                 !
                             </div>
-
                         </div>
 
                         <div class="flex-1">
-                            <h3 class="text-[15px] font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                            <h3
+                                class="text-[15px] leading-tight font-semibold text-gray-900 dark:text-gray-100"
+                            >
                                 {{ n.title }}
                             </h3>
 
-                            <p class="mt-1 text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed">
+                            <p
+                                class="mt-1 text-[13px] leading-relaxed text-gray-700 dark:text-gray-300"
+                            >
                                 {{ n.message }}
                             </p>
 
-                            <p class="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
+                            <p
+                                class="mt-2 text-[11px] text-gray-400 dark:text-gray-500"
+                            >
                                 {{ new Date(n.created_at).toLocaleString() }}
                             </p>
                         </div>
