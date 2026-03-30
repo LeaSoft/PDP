@@ -5,7 +5,9 @@ import { notifyError, notifySuccess } from '@/composables/useNotify';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { fetchJson } from '@/lib/csrf';
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { GripVertical } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, ref } from 'vue';
+import { VueDraggable } from 'vue-draggable-plus';
 
 interface TemplateItem {
     key: string;
@@ -263,6 +265,7 @@ async function addEditSkillRow() {
         skill: '',
         description: '',
         criteriaText: '',
+        order_column: editTemplate.value.skills.length,
     });
     await nextTick();
     const container = editSkillsContainer.value;
@@ -272,6 +275,13 @@ async function addEditSkillRow() {
 }
 function removeEditSkillRow(i: number) {
     editTemplate.value.skills.splice(i, 1);
+    recalcEditOrder();
+}
+
+function recalcEditOrder() {
+    editTemplate.value.skills.forEach((s, idx) => {
+        s.order_column = idx;
+    });
 }
 
 async function saveEdit() {
@@ -496,60 +506,72 @@ onMounted(loadTemplates);
                                 No skills yet. Add the first one.
                             </div>
                             <div ref="createSkillsContainer">
-                                <div
-                                    v-for="(s, i) in newTemplate.skills"
-                                    :key="i"
-                                    class="mb-3 rounded-md border p-3"
+                                <VueDraggable
+                                    v-model="newTemplate.skills"
+                                    handle=".drag-handle"
+                                    :animation="150"
                                 >
                                     <div
-                                        class="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2"
+                                        v-for="(s, i) in newTemplate.skills"
+                                        :key="i"
+                                        class="mb-3 rounded-md border p-3"
                                     >
-                                        <div>
+                                        <div class="mb-2 flex items-start gap-2">
+                                            <GripVertical
+                                                class="drag-handle mt-1 size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                                            />
+                                            <div
+                                                class="grid min-w-0 flex-1 grid-cols-1 gap-2 md:grid-cols-2"
+                                            >
+                                                <div>
+                                                    <label
+                                                        class="mb-1 block text-xs font-medium"
+                                                        >Skill</label
+                                                    >
+                                                    <input
+                                                        v-model="s.skill"
+                                                        type="text"
+                                                        class="w-full rounded-md border px-3 py-2 text-sm"
+                                                        placeholder="e.g. Vue Basics"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label
+                                                        class="mb-1 block text-xs font-medium"
+                                                        >Description</label
+                                                    >
+                                                    <input
+                                                        v-model="s.description"
+                                                        type="text"
+                                                        class="w-full rounded-md border px-3 py-2 text-sm"
+                                                        placeholder="Optional"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="pl-6">
                                             <label
                                                 class="mb-1 block text-xs font-medium"
-                                                >Skill</label
+                                                >Win Criteria (one per
+                                                line)</label
                                             >
-                                            <input
-                                                v-model="s.skill"
-                                                type="text"
+                                            <textarea
+                                                v-model="s.criteriaText"
+                                                rows="3"
                                                 class="w-full rounded-md border px-3 py-2 text-sm"
-                                                placeholder="e.g. Vue Basics"
-                                            />
+                                                placeholder="Explain tasks or acceptance criteria, each on a new line"
+                                            ></textarea>
                                         </div>
-                                        <div>
-                                            <label
-                                                class="mb-1 block text-xs font-medium"
-                                                >Description</label
+                                        <div class="mt-2 flex justify-end pl-6">
+                                            <button
+                                                class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                                @click="removeSkillRow(i)"
                                             >
-                                            <input
-                                                v-model="s.description"
-                                                type="text"
-                                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                                placeholder="Optional"
-                                            />
+                                                Remove
+                                            </button>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label
-                                            class="mb-1 block text-xs font-medium"
-                                            >Win Criteria (one per line)</label
-                                        >
-                                        <textarea
-                                            v-model="s.criteriaText"
-                                            rows="3"
-                                            class="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="Explain tasks or acceptance criteria, each on a new line"
-                                        ></textarea>
-                                    </div>
-                                    <div class="mt-2 flex justify-end">
-                                        <button
-                                            class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                            @click="removeSkillRow(i)"
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                </div>
+                                </VueDraggable>
                                 <div class="mt-2 flex justify-center">
                                     <button
                                         class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
@@ -636,75 +658,73 @@ onMounted(loadTemplates);
                                 No skills yet. Add the first one.
                             </div>
                             <div ref="editSkillsContainer">
-                                <div
-                                    v-for="(s, i) in editTemplate.skills"
-                                    :key="s.key || i"
-                                    class="mb-3 rounded-md border p-3"
+                                <VueDraggable
+                                    v-model="editTemplate.skills"
+                                    handle=".drag-handle"
+                                    :animation="150"
+                                    @end="recalcEditOrder"
                                 >
                                     <div
-                                        class="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2"
+                                        v-for="(s, i) in editTemplate.skills"
+                                        :key="s.key || i"
+                                        class="mb-3 rounded-md border p-3"
                                     >
-                                        <div>
+                                        <div class="mb-2 flex items-start gap-2">
+                                            <GripVertical
+                                                class="drag-handle mt-1 size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                                            />
+                                            <div
+                                                class="grid min-w-0 flex-1 grid-cols-1 gap-2 md:grid-cols-2"
+                                            >
+                                                <div>
+                                                    <label
+                                                        class="mb-1 block text-xs font-medium"
+                                                        >Skill</label
+                                                    >
+                                                    <input
+                                                        v-model="s.skill"
+                                                        type="text"
+                                                        class="w-full rounded-md border px-3 py-2 text-sm"
+                                                        placeholder="e.g. Vue Basics"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label
+                                                        class="mb-1 block text-xs font-medium"
+                                                        >Description</label
+                                                    >
+                                                    <input
+                                                        v-model="s.description"
+                                                        type="text"
+                                                        class="w-full rounded-md border px-3 py-2 text-sm"
+                                                        placeholder="Optional"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="pl-6">
                                             <label
                                                 class="mb-1 block text-xs font-medium"
-                                                >Skill</label
+                                                >Win Criteria (one per
+                                                line)</label
                                             >
-                                            <input
-                                                v-model="s.skill"
-                                                type="text"
+                                            <textarea
+                                                v-model="s.criteriaText"
+                                                rows="3"
                                                 class="w-full rounded-md border px-3 py-2 text-sm"
-                                                placeholder="e.g. Vue Basics"
-                                            />
+                                                placeholder="Explain tasks or acceptance criteria, each on a new line"
+                                            ></textarea>
                                         </div>
-                                        <div>
-                                            <label
-                                                class="mb-1 block text-xs font-medium"
-                                                >Description</label
+                                        <div class="mt-2 flex justify-end pl-6">
+                                            <button
+                                                class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                                @click="removeEditSkillRow(i)"
                                             >
-                                            <input
-                                                v-model="s.description"
-                                                type="text"
-                                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                                placeholder="Optional"
-                                            />
+                                                Remove
+                                            </button>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label
-                                            class="mb-1 block text-xs font-medium"
-                                            >Win Criteria (one per line)</label
-                                        >
-                                        <textarea
-                                            v-model="s.criteriaText"
-                                            rows="3"
-                                            class="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="Explain tasks or acceptance criteria, each on a new line"
-                                        ></textarea>
-                                    </div>
-                                    <div
-                                        class="mt-2 flex items-center justify-between gap-2"
-                                    >
-                                        <div
-                                            class="text-[11px] text-muted-foreground"
-                                        >
-                                            Order:
-                                            <input
-                                                v-model.number="
-                                                    (s as any).order_column
-                                                "
-                                                type="number"
-                                                min="0"
-                                                class="w-16 rounded border px-2 py-1 text-xs"
-                                            />
-                                        </div>
-                                        <button
-                                            class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                            @click="removeEditSkillRow(i)"
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                </div>
+                                </VueDraggable>
                                 <div class="mt-2 flex justify-center">
                                     <button
                                         class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
