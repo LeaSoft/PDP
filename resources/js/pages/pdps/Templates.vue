@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import Heading from '@/components/Heading.vue';
-import { useEscapableModal } from '@/composables/useEscapableModal';
+import AssignTemplateModal from '@/components/pdps/modals/AssignTemplateModal.vue';
+import CreateTemplateModal from '@/components/pdps/modals/CreateTemplateModal.vue';
+import EditTemplateModal from '@/components/pdps/modals/EditTemplateModal.vue';
 import { notifyError, notifySuccess } from '@/composables/useNotify';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { fetchJson } from '@/lib/csrf';
-import { Head, router, usePage } from '@inertiajs/vue3';
-import { GripVertical } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, ref } from 'vue';
-import { VueDraggable } from 'vue-draggable-plus';
+import { Head, usePage } from '@inertiajs/vue3';
+import { computed, onMounted, ref } from 'vue';
 
 interface TemplateItem {
     key: string;
@@ -20,233 +20,46 @@ interface TemplateItem {
 
 const templates = ref<TemplateItem[]>([]);
 const loading = ref(false);
-const assigning = ref<string | null>(null);
 
-const createSkillsContainer = ref<null | HTMLDivElement>(null);
-const editSkillsContainer = ref<null | HTMLDivElement>(null);
-
-// Assign-to-PDP modal state
-const showAssignModal = ref(false);
-const assignTemplateKey = ref<string | null>(null);
-type PdpOption = {
-    id: number;
-    title: string;
-    status: 'Planned' | 'In Progress' | 'Done' | 'Blocked';
-    skills_count?: number;
-};
-const pdpOptions = ref<PdpOption[]>([]);
-const selectedPdpId = ref<number>(0);
-const assignLoading = ref(false);
-const canSubmitAssign = computed(() => !!selectedPdpId.value);
-
-async function openAssignModal(key: string) {
-    assignTemplateKey.value = key;
-    showAssignModal.value = true;
-    selectedPdpId.value = 0;
-    // Load my PDPs and filter out completed ones
-    try {
-        assignLoading.value = true;
-        const list: any[] = await fetchJson('/pdps.json');
-        pdpOptions.value = (Array.isArray(list) ? list : []).filter(
-            (p: any) => p && p.status !== 'Done',
-        );
-    } catch (e: any) {
-        notifyError('Failed to load your PDPs: ' + (e?.message || 'Error'));
-        pdpOptions.value = [];
-    } finally {
-        assignLoading.value = false;
-    }
-}
-
-function closeAssignModal() {
-    showAssignModal.value = false;
-    assignTemplateKey.value = null;
-}
-
-async function submitAssign() {
-    if (!assignTemplateKey.value || !selectedPdpId.value) return;
-    assigning.value = assignTemplateKey.value;
-    try {
-        await fetchJson(
-            `/pdps/${selectedPdpId.value}/templates/${encodeURIComponent(assignTemplateKey.value)}/assign.json`,
-            {
-                method: 'POST',
-                body: JSON.stringify({}),
-            },
-        );
-        notifySuccess('Template skills have been added to the selected PDP');
-        closeAssignModal();
-        router.visit('/pdps');
-    } catch (e: any) {
-        notifyError(
-            'Failed to add template skills: ' + (e?.message || 'Error'),
-        );
-    } finally {
-        assigning.value = null;
-    }
-}
-
-const breadcrumbs = computed(() => [
-    { title: 'Skill List', href: '/pdps/templates' },
-]);
-
-// Moderator flag from Inertia props
 const page = usePage<{ auth: { user: { is_moderator: boolean } } }>();
 const isModerator = computed(() =>
     Boolean(page.props.auth?.user?.is_moderator),
 );
 
-// Create Template modal state
+const breadcrumbs = computed(() => [
+    { title: 'Skill List', href: '/pdps/templates' },
+]);
+
+// Modal state
 const showCreateModal = ref(false);
-interface NewSkill {
-    skill: string;
-    description?: string;
-    criteriaText?: string;
-}
-const newTemplate = ref<{
-    title: string;
-    description?: string;
-    skills: NewSkill[];
-}>({ title: '', description: '', skills: [] });
-function openCreate() {
-    newTemplate.value = { title: '', description: '', skills: [] };
-    showCreateModal.value = true;
-}
-
-function closeCreateModal() {
-    showCreateModal.value = false;
-}
-async function addSkillRow() {
-    newTemplate.value.skills.push({
-        skill: '',
-        description: '',
-        criteriaText: '',
-    });
-    await nextTick();
-    const container = createSkillsContainer.value;
-    if (container) {
-        container.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-    }
-}
-function removeSkillRow(i: number) {
-    newTemplate.value.skills.splice(i, 1);
-}
-
-async function createTemplate() {
-    const title = newTemplate.value.title.trim();
-    if (!title) {
-        notifyError('Please enter template title');
-        return;
-    }
-    const skillsPayload = newTemplate.value.skills.map((s, idx) => {
-        const criteriaItems = (s.criteriaText || '')
-            .split(/\n+/)
-            .map((t) => t.trim())
-            .filter(Boolean)
-            .map((t) => ({ text: t }));
-        return {
-            skill: s.skill || `Skill ${idx + 1}`,
-            description: s.description || null,
-            criteria: criteriaItems.length
-                ? JSON.stringify(criteriaItems)
-                : null,
-            priority: 'Medium',
-            eta: null,
-            status: 'Planned',
-            order_column: idx,
-        };
-    });
-    const payload = {
-        version: 1,
-        pdp: {
-            title,
-            description: newTemplate.value.description || '',
-            priority: 'Medium',
-            eta: null,
-            status: 'Planned',
-        },
-        skills: skillsPayload,
-    };
-    try {
-        await fetchJson('/pdps/templates.json', {
-            method: 'POST',
-            body: JSON.stringify(payload),
-        });
-        notifySuccess('Template created');
-        closeCreateModal();
-        await loadTemplates();
-    } catch (e: any) {
-        notifyError('Failed to create template: ' + (e?.message || 'Error'));
-    }
-}
-
-// Edit Template state
 const showEditModal = ref(false);
 const editingKey = ref<string | null>(null);
-interface EditSkill {
-    key?: string;
-    skill: string;
-    description?: string;
-    criteriaText?: string;
-    order_column?: number;
-}
-const editTemplate = ref<{
-    title: string;
-    description?: string;
-    skills: EditSkill[];
-}>({ title: '', description: '', skills: [] });
+const showAssignModal = ref(false);
+const assignTemplateKey = ref<string | null>(null);
 
-function closeEditModal() {
-    showEditModal.value = false;
+function openEdit(key: string) {
+    editingKey.value = key;
+    showEditModal.value = true;
 }
 
-async function openEdit(key: string) {
-    try {
-        const data = await fetchJson(
-            `/pdps/templates/${encodeURIComponent(key)}.json`,
-        );
-        const payload = data?.data || {};
-        const p = payload.pdp || {};
-        const skills: any[] = payload.skills || [];
-        editTemplate.value = {
-            title: String(p.title || data.title || ''),
-            description: p.description || data.description || '',
-            skills: skills.map((s, idx) => {
-                let criteriaText = '';
-                try {
-                    const items = s.criteria ? JSON.parse(s.criteria) : [];
-                    if (Array.isArray(items)) {
-                        criteriaText = items
-                            .map((it: any) => it?.text ?? '')
-                            .filter(Boolean)
-                            .join('\n');
-                    }
-                } catch {}
-                return {
-                    key: s.key,
-                    skill: s.skill || `Skill ${idx + 1}`,
-                    description: s.description || '',
-                    criteriaText,
-                    order_column:
-                        typeof s.order_column === 'number'
-                            ? s.order_column
-                            : idx,
-                };
-            }),
-        };
-        editingKey.value = key;
-        showEditModal.value = true;
-    } catch (e: any) {
-        notifyError(
-            'Failed to load template for edit: ' + (e?.message || 'Error'),
-        );
-    }
+function onEditModalUpdate(v: boolean) {
+    showEditModal.value = v;
+    if (!v) editingKey.value = null;
 }
 
-// Delete template
+function openAssignModal(key: string) {
+    assignTemplateKey.value = key;
+    showAssignModal.value = true;
+}
+
+function onAssignModalUpdate(v: boolean) {
+    showAssignModal.value = v;
+    if (!v) assignTemplateKey.value = null;
+}
+
 async function onDeleteTemplate(key: string) {
     const ok = window.confirm(
-        'Видалити цей шаблон?\n\nБуде також видалено пов’язані скіли у всіх PDP (окрім тих, що були змінені вручну). Це дію не можна скасувати.',
+        'Видалити цей шаблон?\n\nБуде також видалено пов\u2019язані скіли у всіх PDP (окрім тих, що були змінені вручну). Це дію не можна скасувати.',
     );
     if (!ok) return;
     try {
@@ -260,84 +73,6 @@ async function onDeleteTemplate(key: string) {
     }
 }
 
-async function addEditSkillRow() {
-    editTemplate.value.skills.push({
-        skill: '',
-        description: '',
-        criteriaText: '',
-        order_column: editTemplate.value.skills.length,
-    });
-    await nextTick();
-    const container = editSkillsContainer.value;
-    if (container) {
-        container.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-    }
-}
-function removeEditSkillRow(i: number) {
-    editTemplate.value.skills.splice(i, 1);
-    recalcEditOrder();
-}
-
-function recalcEditOrder() {
-    editTemplate.value.skills.forEach((s, idx) => {
-        s.order_column = idx;
-    });
-}
-
-async function saveEdit() {
-    if (!editingKey.value) return;
-    const title = editTemplate.value.title.trim();
-    if (!title) {
-        notifyError('Please enter template title');
-        return;
-    }
-    const skillsPayload = editTemplate.value.skills.map((s, idx) => {
-        const criteriaItems = (s.criteriaText || '')
-            .split(/\n+/)
-            .map((t) => t.trim())
-            .filter(Boolean)
-            .map((t) => ({ text: t }));
-        return {
-            key: s.key,
-            skill: s.skill || `Skill ${idx + 1}`,
-            description: s.description || null,
-            criteria: criteriaItems.length
-                ? JSON.stringify(criteriaItems)
-                : null,
-            priority: 'Medium',
-            eta: null,
-            status: 'Planned',
-            order_column:
-                typeof s.order_column === 'number' ? s.order_column : idx,
-        };
-    });
-    const payload = {
-        version: 1,
-        pdp: {
-            title,
-            description: editTemplate.value.description || '',
-            priority: 'Medium',
-            eta: null,
-            status: 'Planned',
-        },
-        skills: skillsPayload,
-    };
-    try {
-        await fetchJson(
-            `/pdps/templates/${encodeURIComponent(editingKey.value)}.json`,
-            { method: 'PUT', body: JSON.stringify(payload) },
-        );
-        notifySuccess('Template updated');
-        closeEditModal();
-        editingKey.value = null;
-        await loadTemplates();
-    } catch (e: any) {
-        notifyError('Failed to update template: ' + (e?.message || 'Error'));
-    }
-}
-
-// All requests use global fetchJson wrapper (Sanctum + XSRF)
-
 async function loadTemplates() {
     loading.value = true;
     try {
@@ -348,15 +83,6 @@ async function loadTemplates() {
         loading.value = false;
     }
 }
-
-async function assign(key: string) {
-    // Open Assign-to-PDP modal instead of creating a new PDP
-    await openAssignModal(key);
-}
-
-useEscapableModal(showCreateModal, closeCreateModal);
-useEscapableModal(showEditModal, closeEditModal);
-useEscapableModal(showAssignModal, closeAssignModal);
 
 onMounted(loadTemplates);
 </script>
@@ -375,15 +101,13 @@ onMounted(loadTemplates);
             >
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="text-base font-semibold">Skill List</h2>
-                    <div class="flex items-center gap-2">
-                        <button
-                            v-if="isModerator"
-                            class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
-                            @click="openCreate"
-                        >
-                            + Create Skill Template
-                        </button>
-                    </div>
+                    <button
+                        v-if="isModerator"
+                        class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                        @click="showCreateModal = true"
+                    >
+                        + Create Skill Template
+                    </button>
                 </div>
 
                 <div v-if="loading" class="text-sm text-muted-foreground">
@@ -433,9 +157,8 @@ onMounted(loadTemplates);
                                         Delete
                                     </button>
                                     <button
-                                        class="w-32 rounded-md bg-primary px-3 py-1.5 text-center text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
-                                        :disabled="assigning === t.key"
-                                        @click="assign(t.key)"
+                                        class="w-32 rounded-md bg-primary px-3 py-1.5 text-center text-xs font-medium text-primary-foreground hover:opacity-90"
+                                        @click="openAssignModal(t.key)"
                                     >
                                         Add to my PDP
                                     </button>
@@ -448,392 +171,23 @@ onMounted(loadTemplates);
                     </p>
                 </div>
             </div>
-
-            <!-- Create Template Modal -->
-            <div
-                v-if="showCreateModal"
-                class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
-            >
-                <div
-                    class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"
-                >
-                    <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-base font-semibold">
-                            Create Skill Template
-                        </h3>
-                        <button
-                            class="rounded p-1 text-muted-foreground hover:bg-muted"
-                            @click="closeCreateModal"
-                        >
-                            ✕
-                        </button>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div>
-                            <label class="mb-1 block text-xs font-medium"
-                                >Template title</label
-                            >
-                            <input
-                                v-model="newTemplate.title"
-                                type="text"
-                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                placeholder="e.g. Frontend Intern PDP"
-                            />
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium"
-                                >Description</label
-                            >
-                            <textarea
-                                v-model="newTemplate.description"
-                                rows="2"
-                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                placeholder="Optional short description"
-                            ></textarea>
-                        </div>
-
-                        <div>
-                            <div class="mb-2 flex items-center justify-between">
-                                <label class="block text-xs font-semibold"
-                                    >Skill items</label
-                                >
-                            </div>
-                            <div
-                                v-if="newTemplate.skills.length === 0"
-                                class="text-xs text-muted-foreground"
-                            >
-                                No skills yet. Add the first one.
-                            </div>
-                            <div ref="createSkillsContainer">
-                                <VueDraggable
-                                    v-model="newTemplate.skills"
-                                    handle=".drag-handle"
-                                    :animation="150"
-                                >
-                                    <div
-                                        v-for="(s, i) in newTemplate.skills"
-                                        :key="i"
-                                        class="mb-3 rounded-md border p-3"
-                                    >
-                                        <div class="mb-2 flex items-start gap-2">
-                                            <GripVertical
-                                                class="drag-handle mt-1 size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
-                                            />
-                                            <div
-                                                class="grid min-w-0 flex-1 grid-cols-1 gap-2 md:grid-cols-2"
-                                            >
-                                                <div>
-                                                    <label
-                                                        class="mb-1 block text-xs font-medium"
-                                                        >Skill</label
-                                                    >
-                                                    <input
-                                                        v-model="s.skill"
-                                                        type="text"
-                                                        class="w-full rounded-md border px-3 py-2 text-sm"
-                                                        placeholder="e.g. Vue Basics"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label
-                                                        class="mb-1 block text-xs font-medium"
-                                                        >Description</label
-                                                    >
-                                                    <input
-                                                        v-model="s.description"
-                                                        type="text"
-                                                        class="w-full rounded-md border px-3 py-2 text-sm"
-                                                        placeholder="Optional"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="pl-6">
-                                            <label
-                                                class="mb-1 block text-xs font-medium"
-                                                >Win Criteria (one per
-                                                line)</label
-                                            >
-                                            <textarea
-                                                v-model="s.criteriaText"
-                                                rows="3"
-                                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                                placeholder="Explain tasks or acceptance criteria, each on a new line"
-                                            ></textarea>
-                                        </div>
-                                        <div class="mt-2 flex justify-end pl-6">
-                                            <button
-                                                class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                                @click="removeSkillRow(i)"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                </VueDraggable>
-                                <div class="mt-2 flex justify-center">
-                                    <button
-                                        class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
-                                        @click="addSkillRow"
-                                    >
-                                        + Add skill
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-2 flex justify-end gap-2">
-                            <button
-                                class="rounded-md border px-3 py-2 text-xs hover:bg-muted"
-                                @click="closeCreateModal"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
-                                @click="createTemplate"
-                            >
-                                Create
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Edit Template Modal -->
-            <div
-                v-if="showEditModal"
-                class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
-            >
-                <div
-                    class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"
-                >
-                    <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-base font-semibold">
-                            Edit Skill Template
-                        </h3>
-                        <button
-                            class="rounded p-1 text-muted-foreground hover:bg-muted"
-                            @click="closeEditModal"
-                        >
-                            ✕
-                        </button>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div>
-                            <label class="mb-1 block text-xs font-medium"
-                                >Template title</label
-                            >
-                            <input
-                                v-model="editTemplate.title"
-                                type="text"
-                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                placeholder="Template title"
-                            />
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium"
-                                >Description</label
-                            >
-                            <textarea
-                                v-model="editTemplate.description"
-                                rows="2"
-                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                placeholder="Optional short description"
-                            ></textarea>
-                        </div>
-
-                        <div>
-                            <div class="mb-2 flex items-center justify-between">
-                                <label class="block text-xs font-semibold"
-                                    >Skill items</label
-                                >
-                            </div>
-                            <div
-                                v-if="editTemplate.skills.length === 0"
-                                class="text-xs text-muted-foreground"
-                            >
-                                No skills yet. Add the first one.
-                            </div>
-                            <div ref="editSkillsContainer">
-                                <VueDraggable
-                                    v-model="editTemplate.skills"
-                                    handle=".drag-handle"
-                                    :animation="150"
-                                    @end="recalcEditOrder"
-                                >
-                                    <div
-                                        v-for="(s, i) in editTemplate.skills"
-                                        :key="s.key || i"
-                                        class="mb-3 rounded-md border p-3"
-                                    >
-                                        <div class="mb-2 flex items-start gap-2">
-                                            <GripVertical
-                                                class="drag-handle mt-1 size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
-                                            />
-                                            <div
-                                                class="grid min-w-0 flex-1 grid-cols-1 gap-2 md:grid-cols-2"
-                                            >
-                                                <div>
-                                                    <label
-                                                        class="mb-1 block text-xs font-medium"
-                                                        >Skill</label
-                                                    >
-                                                    <input
-                                                        v-model="s.skill"
-                                                        type="text"
-                                                        class="w-full rounded-md border px-3 py-2 text-sm"
-                                                        placeholder="e.g. Vue Basics"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label
-                                                        class="mb-1 block text-xs font-medium"
-                                                        >Description</label
-                                                    >
-                                                    <input
-                                                        v-model="s.description"
-                                                        type="text"
-                                                        class="w-full rounded-md border px-3 py-2 text-sm"
-                                                        placeholder="Optional"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="pl-6">
-                                            <label
-                                                class="mb-1 block text-xs font-medium"
-                                                >Win Criteria (one per
-                                                line)</label
-                                            >
-                                            <textarea
-                                                v-model="s.criteriaText"
-                                                rows="3"
-                                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                                placeholder="Explain tasks or acceptance criteria, each on a new line"
-                                            ></textarea>
-                                        </div>
-                                        <div class="mt-2 flex justify-end pl-6">
-                                            <button
-                                                class="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                                @click="removeEditSkillRow(i)"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                </VueDraggable>
-                                <div class="mt-2 flex justify-center">
-                                    <button
-                                        class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
-                                        @click="addEditSkillRow"
-                                    >
-                                        + Add skill
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-2 flex justify-end gap-2">
-                            <button
-                                class="rounded-md border px-3 py-2 text-xs hover:bg-muted"
-                                @click="closeEditModal"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
-                                @click="saveEdit"
-                            >
-                                Save
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Assign Template Skills to PDP Modal -->
-            <div
-                v-if="showAssignModal"
-                class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
-            >
-                <div
-                    class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-xl"
-                >
-                    <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-base font-semibold">
-                            Add template skills to PDP
-                        </h3>
-                        <button
-                            class="rounded p-1 text-muted-foreground hover:bg-muted"
-                            @click="closeAssignModal"
-                        >
-                            ✕
-                        </button>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div>
-                            <label class="mb-1 block text-xs font-medium"
-                                >Target PDP</label
-                            >
-                            <select
-                                v-model.number="selectedPdpId"
-                                class="w-full rounded-md border px-3 py-2 text-sm"
-                                :disabled="assignLoading"
-                            >
-                                <option :value="0" disabled>
-                                    Select your PDP
-                                </option>
-                                <option
-                                    v-for="p in pdpOptions"
-                                    :key="p.id"
-                                    :value="p.id"
-                                >
-                                    {{ p.title }} · {{ p.status }} ·
-                                    {{ p.skills_count ?? 0 }} skills
-                                </option>
-                            </select>
-                            <p
-                                v-if="assignLoading"
-                                class="mt-1 text-xs text-muted-foreground"
-                            >
-                                Loading your PDPs…
-                            </p>
-                            <p
-                                v-else-if="pdpOptions.length === 0"
-                                class="mt-1 text-xs text-muted-foreground"
-                            >
-                                You have no editable PDPs (only non-completed
-                                are available).
-                            </p>
-                        </div>
-                        <p class="text-xs text-muted-foreground">
-                            All skills from the selected template will be added
-                            to the chosen PDP. Existing skills from this
-                            template will be skipped.
-                        </p>
-
-                        <div class="mt-2 flex justify-end gap-2">
-                            <button
-                                class="rounded-md border px-3 py-2 text-xs hover:bg-muted"
-                                @click="closeAssignModal"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
-                                :disabled="!canSubmitAssign"
-                                @click="submitAssign"
-                            >
-                                Add to PDP
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
+
+        <CreateTemplateModal
+            :open="showCreateModal"
+            @update:open="showCreateModal = $event"
+            @saved="loadTemplates"
+        />
+        <EditTemplateModal
+            :open="showEditModal"
+            :template-key="editingKey"
+            @update:open="onEditModalUpdate"
+            @saved="loadTemplates"
+        />
+        <AssignTemplateModal
+            :open="showAssignModal"
+            :template-key="assignTemplateKey"
+            @update:open="onAssignModalUpdate"
+        />
     </AppLayout>
 </template>
