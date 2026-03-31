@@ -1093,7 +1093,7 @@ async function refreshUnseen() {
 
     <AppLayout :breadcrumbs="breadcrumbsItems">
         <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+            class="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6"
         >
             <Heading
                 :title="activeTab === 'Annex' ? 'Annex List' : 'PDP List'"
@@ -1104,7 +1104,7 @@ async function refreshUnseen() {
                 "
             />
 
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-6">
                 <!-- PDP list (top) extracted to component -->
                 <PdpsLists
                     :pdps="pdps"
@@ -1124,9 +1124,9 @@ async function refreshUnseen() {
 
                 <!-- Tabs: Manage / Annex -->
                 <div
-                    class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+                    class="rounded-xl border border-sidebar-border/70 p-5 shadow-sm dark:border-sidebar-border"
                 >
-                    <div class="mb-3 flex items-center justify-end">
+                    <div class="mb-4 flex items-center justify-end">
                         <div
                             v-if="
                                 selectedPdp &&
@@ -1136,13 +1136,13 @@ async function refreshUnseen() {
                             class="flex gap-2"
                         >
                             <button
-                                class="rounded-md border px-3 py-2 text-xs hover:bg-muted"
+                                class="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
                                 @click="openEditPdp(selectedPdp as any)"
                             >
                                 Edit PDP
                             </button>
                             <button
-                                class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                                class="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm hover:opacity-90"
                                 @click="openCreateSkill"
                             >
                                 + Add Skill
@@ -1156,7 +1156,7 @@ async function refreshUnseen() {
                             "
                         >
                             <button
-                                class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                                class="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm hover:opacity-90"
                                 @click="downloadCurrentPdpAnnex"
                             >
                                 Download current PDP

@@ -90,20 +90,20 @@ onMounted(loadTemplates);
 <template>
     <Head title="Skill List" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-4 rounded-xl p-4">
+        <div class="flex flex-col gap-6 rounded-xl p-6">
             <Heading
                 title="Skill List"
                 description="Skill template catalogue. Add the necessary skills to your PDP, edit or delete templates."
             />
 
             <div
-                class="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
+                class="rounded-xl border border-sidebar-border/70 p-5 shadow-sm dark:border-sidebar-border"
             >
-                <div class="mb-3 flex items-center justify-between">
+                <div class="mb-5 flex items-center justify-between">
                     <h2 class="text-base font-semibold">Skill List</h2>
                     <button
                         v-if="isModerator"
-                        class="rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                        class="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm hover:opacity-90"
                         @click="showCreateModal = true"
                     >
                         + Create Skill Template
@@ -116,53 +116,53 @@ onMounted(loadTemplates);
                 <div v-else>
                     <div
                         v-if="templates.length"
-                        class="grid grid-cols-1 gap-3 md:grid-cols-2"
+                        class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
                     >
                         <div
                             v-for="t in templates"
                             :key="t.key"
-                            class="rounded-md border p-3"
+                            class="flex flex-col rounded-xl border p-4 transition hover:bg-muted/30"
                         >
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <div class="font-medium">{{ t.title }}</div>
-                                    <div
-                                        v-if="t.description"
-                                        class="mt-0.5 text-xs text-muted-foreground"
-                                    >
-                                        {{ t.description }}
-                                    </div>
-                                    <div
-                                        class="mt-1 text-[11px] text-muted-foreground"
-                                    >
-                                        {{ t.skills_count }} skills ·
-                                        {{ t.priority }} · {{ t.status }}
-                                    </div>
-                                </div>
-                                <div
-                                    class="flex shrink-0 flex-col items-end gap-2"
+                            <!-- Card body -->
+                            <div class="flex-1">
+                                <div class="mb-1 font-semibold">{{ t.title }}</div>
+                                <p
+                                    v-if="t.description"
+                                    class="mb-2 line-clamp-2 text-xs text-muted-foreground"
                                 >
+                                    {{ t.description }}
+                                </p>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                        {{ t.skills_count }} skills
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Card actions -->
+                            <div class="mt-4 flex items-center justify-between border-t pt-3">
+                                <div class="flex items-center gap-3">
                                     <button
                                         v-if="isModerator"
-                                        class="w-32 rounded-md border px-3 py-1.5 text-center text-xs hover:bg-muted"
+                                        class="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                                         @click="openEdit(t.key)"
                                     >
                                         Edit
                                     </button>
                                     <button
                                         v-if="isModerator"
-                                        class="w-32 rounded-md border px-3 py-1.5 text-center text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                        class="text-xs text-destructive underline-offset-2 hover:underline"
                                         @click="onDeleteTemplate(t.key)"
                                     >
                                         Delete
                                     </button>
-                                    <button
-                                        class="w-32 rounded-md bg-primary px-3 py-1.5 text-center text-xs font-medium text-primary-foreground hover:opacity-90"
-                                        @click="openAssignModal(t.key)"
-                                    >
-                                        Add to my PDP
-                                    </button>
                                 </div>
+                                <button
+                                    class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:opacity-90"
+                                    @click="openAssignModal(t.key)"
+                                >
+                                    Add to my PDP
+                                </button>
                             </div>
                         </div>
                     </div>

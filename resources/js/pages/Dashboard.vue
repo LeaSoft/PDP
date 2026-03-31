@@ -4,6 +4,7 @@ import { fetchJson } from '@/lib/csrf';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import { CheckCircle2, RefreshCw } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -226,20 +227,21 @@ onUnmounted(() => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+            class="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6"
         >
-            <div class="grid auto-rows-min gap-4 md:grid-cols-3">
+            <div class="grid auto-rows-min gap-6 md:grid-cols-3">
                 <!-- Left-top: My PDPs snapshot -->
                 <div
-                    class="relative overflow-hidden rounded-xl border border-sidebar-border/70 p-3 dark:border-sidebar-border"
+                    class="relative overflow-hidden rounded-xl border border-sidebar-border/70 p-5 shadow-sm dark:border-sidebar-border"
                 >
-                    <div class="mb-2 flex items-center justify-between gap-2">
-                        <h3 class="text-sm font-semibold">My PDPs snapshot</h3>
+                    <div class="mb-4 flex items-center justify-between gap-2">
+                        <h3 class="text-base font-semibold">My PDPs snapshot</h3>
                         <button
-                            class="rounded border px-2 py-0.5 text-[11px] hover:bg-muted"
+                            class="text-muted-foreground hover:text-foreground"
                             @click="loadOverview"
+                            title="Refresh"
                         >
-                            Refresh
+                            <RefreshCw class="size-4" />
                         </button>
                     </div>
                     <div
@@ -262,20 +264,20 @@ onUnmounted(() => {
                             <div
                                 v-for="it in overview || []"
                                 :key="it.id"
-                                class="py-2 text-sm"
+                                class="py-3"
                             >
                                 <div
-                                    class="flex items-center justify-between gap-2"
+                                    class="flex items-start justify-between gap-2"
                                 >
-                                    <div class="truncate">
+                                    <div class="min-w-0 flex-1">
                                         <div
-                                            class="flex items-center gap-2 font-medium"
+                                            class="flex items-center gap-2"
                                         >
-                                            <span class="truncate">{{
+                                            <span class="truncate text-sm font-semibold">{{
                                                 it.title
                                             }}</span>
                                             <span
-                                                class="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px]"
+                                                class="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
                                                 :class="
                                                     it.role === 'owner'
                                                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
@@ -289,7 +291,7 @@ onUnmounted(() => {
                                             >
                                         </div>
                                         <div
-                                            class="text-[11px] text-muted-foreground"
+                                            class="mt-0.5 text-[11px] text-muted-foreground"
                                         >
                                             {{ it.status
                                             }}<span v-if="it.eta">
@@ -297,9 +299,9 @@ onUnmounted(() => {
                                             >
                                         </div>
                                     </div>
-                                    <div class="text-right">
+                                    <div class="shrink-0 text-right">
                                         <div
-                                            class="text-[11px] whitespace-nowrap text-muted-foreground"
+                                            class="text-xs font-medium whitespace-nowrap tabular-nums"
                                         >
                                             {{
                                                 Math.min(
@@ -309,37 +311,37 @@ onUnmounted(() => {
                                             }}
                                             / {{ it.totalCriteria }}
                                         </div>
-                                        <div
-                                            class="mt-1 h-1.5 w-28 overflow-hidden rounded bg-muted"
-                                        >
-                                            <div
-                                                class="h-full bg-primary"
-                                                :style="{
-                                                    width:
-                                                        (it.totalCriteria
-                                                            ? Math.min(
-                                                                  100,
-                                                                  Math.round(
-                                                                      (100 *
-                                                                          it.closed) /
-                                                                          it.totalCriteria,
-                                                                  ),
-                                                              )
-                                                            : 0) + '%',
-                                                }"
-                                            ></div>
-                                        </div>
                                     </div>
                                 </div>
-                                <div class="mt-2 flex items-center gap-2">
+                                <div
+                                    class="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted"
+                                >
+                                    <div
+                                        class="h-full rounded-full bg-primary transition-all"
+                                        :style="{
+                                            width:
+                                                (it.totalCriteria
+                                                    ? Math.min(
+                                                          100,
+                                                          Math.round(
+                                                              (100 *
+                                                                  it.closed) /
+                                                                  it.totalCriteria,
+                                                          ),
+                                                      )
+                                                    : 0) + '%',
+                                        }"
+                                    ></div>
+                                </div>
+                                <div class="mt-2 flex items-center gap-3">
                                     <a
                                         :href="`/pdps?tab=manage&pdp=${it.id}`"
-                                        class="rounded border px-2 py-0.5 text-[11px] hover:bg-muted"
+                                        class="text-xs text-primary underline-offset-2 hover:underline"
                                         >Open</a
                                     >
                                     <a
                                         :href="`/pdps?tab=annex&pdp=${it.id}`"
-                                        class="rounded border px-2 py-0.5 text-[11px] hover:bg-muted"
+                                        class="text-xs text-primary underline-offset-2 hover:underline"
                                         >Annex</a
                                     >
                                 </div>
@@ -350,19 +352,21 @@ onUnmounted(() => {
                         </div>
                     </div>
                 </div>
-                <!-- Middle-top: Professional level only (PDP progress removed) -->
+
+                <!-- Middle-top: Professional level -->
                 <div
-                    class="relative overflow-hidden rounded-xl border border-sidebar-border/70 p-3 dark:border-sidebar-border"
+                    class="relative overflow-hidden rounded-xl border border-sidebar-border/70 p-5 shadow-sm dark:border-sidebar-border"
                 >
-                    <div class="mb-2 flex items-center justify-between gap-2">
-                        <h3 class="text-sm font-semibold">
+                    <div class="mb-4 flex items-center justify-between gap-2">
+                        <h3 class="text-base font-semibold">
                             Professional level
                         </h3>
                         <button
-                            class="rounded border px-2 py-0.5 text-[11px] hover:bg-muted"
+                            class="text-muted-foreground hover:text-foreground"
                             @click="loadProLevel"
+                            title="Refresh"
                         >
-                            Refresh
+                            <RefreshCw class="size-4" />
                         </button>
                     </div>
                     <div
@@ -377,23 +381,27 @@ onUnmounted(() => {
                     >
                         {{ proLevelError }}
                     </div>
-                    <div v-else-if="proLevel" class="space-y-1">
-                        <div class="flex items-center justify-between">
-                            <div class="text-[12px]">
+                    <div v-else-if="proLevel" class="space-y-3">
+                        <div class="flex items-end justify-between gap-2">
+                            <div>
                                 <span
-                                    class="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+                                    class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
                                     >{{ proLevel.title }}</span
                                 >
+                                <div class="mt-1 text-2xl font-bold leading-none">
+                                    {{ proLevel.closed_skills }}
+                                    <span class="text-sm font-normal text-muted-foreground">skills closed</span>
+                                </div>
                             </div>
-                            <div class="text-[11px] text-muted-foreground">
-                                {{ proLevel.percent }}% completed
+                            <div class="text-sm font-medium text-muted-foreground">
+                                {{ proLevel.percent }}%
                             </div>
                         </div>
                         <div
-                            class="h-2 w-full overflow-hidden rounded bg-muted"
+                            class="h-3 w-full overflow-hidden rounded-full bg-muted"
                         >
                             <div
-                                class="h-full bg-green-500 transition-all"
+                                class="h-full rounded-full bg-green-500 transition-all"
                                 :style="{
                                     width:
                                         (proLevel ? proLevel.percent : 0) + '%',
@@ -401,30 +409,32 @@ onUnmounted(() => {
                             ></div>
                         </div>
                         <div
-                            class="text-[11px] text-muted-foreground"
-                            v-if="
-                                !proLevel.at_max &&
-                                proLevel.remaining_to_next != null
-                            "
+                            v-if="!proLevel.at_max && proLevel.remaining_to_next != null"
+                            class="text-sm font-medium text-muted-foreground"
                         >
-                            {{ proLevel.remaining_to_next }} to next level
+                            {{ proLevel.remaining_to_next }} more to next level
+                        </div>
+                        <div v-else-if="proLevel.at_max" class="text-sm font-medium text-green-600 dark:text-green-400">
+                            Max level reached
                         </div>
                     </div>
                     <div v-else class="text-xs text-muted-foreground">
                         No level data.
                     </div>
                 </div>
+
                 <!-- Right-top: Pending approvals list -->
                 <div
-                    class="relative overflow-hidden rounded-xl border border-sidebar-border/70 p-3 dark:border-sidebar-border"
+                    class="relative overflow-hidden rounded-xl border border-sidebar-border/70 p-5 shadow-sm dark:border-sidebar-border"
                 >
-                    <div class="mb-2 flex items-center justify-between gap-2">
-                        <h3 class="text-sm font-semibold">Pending approvals</h3>
+                    <div class="mb-4 flex items-center justify-between gap-2">
+                        <h3 class="text-base font-semibold">Pending approvals</h3>
                         <button
-                            class="rounded border px-2 py-0.5 text-[11px] hover:bg-muted"
+                            class="text-muted-foreground hover:text-foreground"
                             @click="loadPending"
+                            title="Refresh"
                         >
-                            Refresh
+                            <RefreshCw class="size-4" />
                         </button>
                     </div>
                     <div v-if="loading" class="text-xs text-muted-foreground">
@@ -441,68 +451,69 @@ onUnmounted(() => {
                             <div
                                 v-for="it in pending || []"
                                 :key="it.id"
-                                class="py-2 text-sm"
+                                class="py-3"
                             >
-                                <div
-                                    class="flex items-center justify-between gap-2"
-                                >
-                                    <div class="truncate">
-                                        <div class="truncate font-medium">
-                                            {{ it.pdp.title }}
+                                <div class="border-l-2 border-l-amber-400 pl-3">
+                                    <div
+                                        class="flex items-start justify-between gap-2"
+                                    >
+                                        <div class="min-w-0 flex-1">
+                                            <div class="truncate text-sm font-semibold">
+                                                {{ it.pdp.title }}
+                                            </div>
+                                            <div
+                                                class="truncate text-xs text-muted-foreground"
+                                            >
+                                                {{ it.skill.name }} · {{ it.criterion.text }}
+                                            </div>
                                         </div>
                                         <div
-                                            class="truncate text-[11px] text-muted-foreground"
+                                            class="text-[11px] shrink-0 whitespace-nowrap text-muted-foreground"
                                         >
-                                            {{ it.skill.name }} •
-                                            {{ it.criterion.text }}
+                                            {{ formatKyivDateTime(it.created_at) }}
                                         </div>
                                     </div>
                                     <div
-                                        class="text-[11px] whitespace-nowrap text-muted-foreground"
+                                        v-if="it.owner"
+                                        class="mt-0.5 truncate text-[11px] text-muted-foreground"
                                     >
-                                        {{ formatKyivDateTime(it.created_at) }}
+                                        Owner: {{ it.owner.name || it.owner.email }}
                                     </div>
-                                </div>
-                                <div
-                                    v-if="it.owner"
-                                    class="mt-0.5 truncate text-[11px] text-muted-foreground"
-                                >
-                                    Owner: {{ it.owner.name || it.owner.email }}
-                                </div>
-                                <div
-                                    v-if="it.note"
-                                    class="mt-1 line-clamp-2 text-xs text-muted-foreground"
-                                >
-                                    {{ it.note }}
-                                </div>
-                                <div class="mt-2">
-                                    <a
-                                        :href="`/pdps?tab=manage&pdp=${it.pdp.id}&skill=${it.skill.id}&criterion=${it.criterion.index}`"
-                                        class="rounded border px-2 py-0.5 text-[11px] hover:bg-muted"
-                                        >Open PDP</a
+                                    <div
+                                        v-if="it.note"
+                                        class="mt-1 line-clamp-2 text-xs text-muted-foreground"
                                     >
+                                        {{ it.note }}
+                                    </div>
+                                    <div class="mt-2">
+                                        <a
+                                            :href="`/pdps?tab=manage&pdp=${it.pdp.id}&skill=${it.skill.id}&criterion=${it.criterion.index}`"
+                                            class="text-xs text-primary underline-offset-2 hover:underline"
+                                            >Open PDP</a
+                                        >
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="text-xs text-muted-foreground">
-                            No pending entries.
+                        <div v-else class="flex flex-col items-center gap-2 py-6 text-muted-foreground">
+                            <CheckCircle2 class="size-8 opacity-40" />
+                            <span class="text-sm">All caught up!</span>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- Bottom: PDP Progress — KPI tiles + micro sparkline -->
+
+            <!-- Bottom: PDP Progress — KPI tiles + per-skill breakdown -->
             <div
-                class="relative flex-1 rounded-xl border border-sidebar-border/70 p-3 dark:border-sidebar-border"
+                class="relative flex-1 rounded-xl border border-sidebar-border/70 p-5 shadow-sm dark:border-sidebar-border"
             >
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold">PDP Progress</h3>
+                <div class="mb-5 flex items-center justify-between gap-3">
+                    <h3 class="text-base font-semibold">PDP Progress</h3>
                     <div class="flex items-center gap-2">
-                        <label class="text-xs text-muted-foreground"
-                            >PDP:</label
-                        >
+                        <label class="text-xs text-muted-foreground">PDP:</label>
                         <select
                             v-model.number="selectedPdpId"
-                            class="rounded border bg-background px-2 py-1 text-sm"
+                            class="rounded-md border bg-background px-3 py-1.5 text-sm"
                         >
                             <option v-if="!pdps.length" disabled value="">
                                 Loading…
@@ -523,75 +534,73 @@ onUnmounted(() => {
                     {{ summaryError }}
                 </div>
                 <div v-else>
-                    <div v-if="summary" class="space-y-3">
+                    <div v-if="summary" class="space-y-5">
                         <!-- KPI tiles -->
-                        <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
-                            <div class="rounded-lg border p-3">
+                        <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
+                            <div class="rounded-xl border border-t-2 border-t-slate-400 p-4">
                                 <div class="text-[11px] text-muted-foreground">
                                     Total criteria
                                 </div>
-                                <div class="mt-1 text-xl font-semibold">
+                                <div class="mt-1 text-3xl font-bold tabular-nums">
                                     {{ summary.totalCriteria }}
                                 </div>
                             </div>
-                            <div class="rounded-lg border p-3">
+                            <div class="rounded-xl border border-t-2 border-t-green-500 p-4">
                                 <div class="text-[11px] text-muted-foreground">
                                     Closed
                                 </div>
-                                <div class="mt-1 text-xl font-semibold">
+                                <div class="mt-1 text-3xl font-bold tabular-nums text-green-600 dark:text-green-400">
                                     {{ summary.approvedCount }}
                                 </div>
                             </div>
-                            <div class="rounded-lg border p-3">
+                            <div class="rounded-xl border border-t-2 border-t-amber-500 p-4">
                                 <div class="text-[11px] text-muted-foreground">
                                     Remaining
                                 </div>
-                                <div class="mt-1 text-xl font-semibold">
+                                <div class="mt-1 text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-400">
                                     {{ summary.pendingCount }}
                                 </div>
                             </div>
                         </div>
-                        <!-- Skills breakdown (per-skill closed/opened) -->
+
+                        <!-- Skills breakdown -->
                         <div>
-                            <div class="mb-2 text-[11px] text-muted-foreground">
+                            <div class="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 Per-skill status
                             </div>
                             <div
                                 v-if="(summary.skills || []).length"
-                                class="grid gap-2 md:grid-cols-2 lg:grid-cols-3"
+                                class="grid gap-3 md:grid-cols-2 lg:grid-cols-3"
                             >
                                 <div
                                     v-for="s in summary.skills"
                                     :key="s.id"
-                                    class="relative overflow-hidden rounded border p-2"
+                                    class="relative overflow-hidden rounded-lg border p-3 pl-4"
                                 >
                                     <div
-                                        class="absolute top-0 right-0 h-full w-1"
+                                        class="absolute top-0 left-0 h-full w-1"
                                         :class="
                                             s.approvedCount === 0
-                                                ? 'bg-red-500'
+                                                ? 'bg-red-400'
                                                 : s.pendingCount === 0
                                                   ? 'bg-green-500'
-                                                  : 'bg-blue-500'
+                                                  : 'bg-blue-400'
                                         "
                                     ></div>
-                                    <div
-                                        class="truncate pr-2 text-sm font-medium"
-                                    >
+                                    <div class="truncate text-sm font-semibold">
                                         {{ s.skill }}
                                     </div>
-                                    <div
-                                        class="mt-1 pr-2 text-[12px] text-muted-foreground"
-                                    >
-                                        Total: {{ s.totalCriteria }}
+                                    <div class="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>{{ s.approvedCount }} closed</span>
+                                        <span>{{ s.totalCriteria }} total</span>
                                     </div>
-                                    <div class="mt-0.5 pr-2 text-[12px]">
-                                        <span class="font-medium">Closed:</span>
-                                        {{ s.approvedCount }}
-                                        <span class="ml-3 font-medium"
-                                            >Open:</span
-                                        >
-                                        {{ s.pendingCount }}
+                                    <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                        <div
+                                            class="h-full rounded-full bg-green-500 transition-all"
+                                            :style="{
+                                                width: (s.totalCriteria ? Math.round((100 * s.approvedCount) / s.totalCriteria) : 0) + '%',
+                                            }"
+                                        ></div>
                                     </div>
                                 </div>
                             </div>

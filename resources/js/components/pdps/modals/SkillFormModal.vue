@@ -58,7 +58,7 @@ function save() {
 
 <template>
     <Dialog :open="props.open" @update:open="$emit('update:open', $event)">
-        <DialogScrollContent class="sm:max-w-lg gap-0 p-0">
+        <DialogScrollContent class="sm:max-w-xl gap-0 p-0">
             <div
                 class="sticky top-0 z-10 border-b bg-background px-6 py-4 pr-14 sm:rounded-t-lg"
             >
@@ -169,11 +169,11 @@ function save() {
                                     </button>
                                 </div>
                             </div>
-                            <div class="flex items-start gap-2">
+                            <div class="flex items-center gap-2">
                                 <input
                                     :value="props.criteriaTextInput"
                                     type="text"
-                                    class="flex-1 rounded-md border bg-transparent px-2 py-1 text-sm"
+                                    class="min-w-0 flex-1 rounded-md border bg-transparent px-2 py-1 text-sm"
                                     placeholder="New criterion"
                                     @input="
                                         emit(
@@ -188,7 +188,7 @@ function save() {
                                 />
                                 <button
                                     type="button"
-                                    class="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:opacity-90"
+                                    class="shrink-0 rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:opacity-90"
                                     @click="props.addCriteriaFromInput"
                                 >
                                     Add
