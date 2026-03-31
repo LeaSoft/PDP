@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Pdp;
 use App\Models\PdpSkill;
-use App\Models\User;
+use App\Models\PdpSkillCriterionProgress;
 use App\Models\PdpTemplate;
+use App\Models\User;
+use App\Services\PdpTemplateSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
@@ -26,7 +28,7 @@ class PdpController extends Controller
     public function shared(Request $request)
     {
         $pdps = Pdp::query()
-            ->whereHas('curators', fn($q) => $q->where('users.id', $request->user()->id))
+            ->whereHas('curators', fn ($q) => $q->where('users.id', $request->user()->id))
             ->with(['user:id,name,email'])
             ->withCount('skills')
             ->orderByDesc('created_at')
@@ -40,14 +42,14 @@ class PdpController extends Controller
         $uid = $request->user()->id;
 
         $pdps = Pdp::query()
-            ->where(function($q) use ($uid) {
+            ->where(function ($q) use ($uid) {
                 $q->where('user_id', $uid)
-                  ->orWhereExists(function($sq) use ($uid) {
-                      $sq->selectRaw('1')
-                         ->from('pdp_curators')
-                         ->whereColumn('pdp_curators.pdp_id', 'pdps.id')
-                         ->where('pdp_curators.user_id', $uid);
-                  });
+                    ->orWhereExists(function ($sq) use ($uid) {
+                        $sq->selectRaw('1')
+                            ->from('pdp_curators')
+                            ->whereColumn('pdp_curators.pdp_id', 'pdps.id')
+                            ->where('pdp_curators.user_id', $uid);
+                    });
             })
             ->with(['user:id,name,email'])
             ->orderByDesc('updated_at')
@@ -56,13 +58,13 @@ class PdpController extends Controller
 
         $out = [];
         foreach ($pdps as $pdp) {
-            $skills = $pdp->skills()->get(['id','criteria']);
+            $skills = $pdp->skills()->get(['id', 'criteria']);
             $total = 0;
             $doneAwareAny = false;
             $closed = 0;
 
             foreach ($skills as $s) {
-                $items = $this->parseCriteriaItemsForOverview((string)($s->criteria ?? ''));
+                $items = $this->parseCriteriaItemsForOverview((string) ($s->criteria ?? ''));
                 $total += count($items);
 
                 $skillDoneAware = false;
@@ -71,14 +73,16 @@ class PdpController extends Controller
                     if (array_key_exists('done', $it)) {
                         $doneAwareAny = true;
                         $skillDoneAware = true;
-                        if (!empty($it['done'])) { $skillDoneCount++; }
+                        if (! empty($it['done'])) {
+                            $skillDoneCount++;
+                        }
                     }
                 }
 
                 if ($skillDoneAware) {
                     $closed += $skillDoneCount;
                 } else {
-                    $skillApproved = (int)\App\Models\PdpSkillCriterionProgress::query()
+                    $skillApproved = (int) PdpSkillCriterionProgress::query()
                         ->where('pdp_skill_id', $s->id)
                         ->where('approved', true)
                         ->distinct()
@@ -89,17 +93,17 @@ class PdpController extends Controller
             }
 
             $out[] = [
-                'id' => (int)$pdp->id,
-                'title' => (string)$pdp->title,
+                'id' => (int) $pdp->id,
+                'title' => (string) $pdp->title,
                 'role' => $pdp->user_id === $uid ? 'owner' : 'curator',
-                'status' => (string)$pdp->status,
+                'status' => (string) $pdp->status,
                 'eta' => $pdp->eta,
-                'totalCriteria' => (int)$total,
-                'closed' => (int)$closed,
-                'remaining' => max(0, (int)$total - (int)$closed),
-                'updated_at' => (string)$pdp->updated_at,
+                'totalCriteria' => (int) $total,
+                'closed' => (int) $closed,
+                'remaining' => max(0, (int) $total - (int) $closed),
+                'updated_at' => (string) $pdp->updated_at,
                 'owner' => [
-                    'id' => (int)($pdp->user->id ?? 0),
+                    'id' => (int) ($pdp->user->id ?? 0),
                     'name' => $pdp->user->name ?? null,
                     'email' => $pdp->user->email ?? null,
                 ],
@@ -119,10 +123,10 @@ class PdpController extends Controller
                     if (is_string($it)) {
                         $items[] = ['text' => trim($it), 'done' => false];
                     } elseif (is_array($it)) {
-                        $text = isset($it['text']) ? trim((string)$it['text']) : '';
+                        $text = isset($it['text']) ? trim((string) $it['text']) : '';
                         if ($text !== '') {
-                            $comment = isset($it['comment']) && trim((string)$it['comment']) !== '' ? (string)$it['comment'] : null;
-                            $done = isset($it['done']) ? (bool)$it['done'] : false;
+                            $comment = isset($it['comment']) && trim((string) $it['comment']) !== '' ? (string) $it['comment'] : null;
+                            $done = isset($it['done']) ? (bool) $it['done'] : false;
                             $row = ['text' => $text, 'comment' => $comment, 'done' => $done];
                             $items[] = $row;
                         }
@@ -138,6 +142,7 @@ class PdpController extends Controller
                 $items[] = ['text' => $t, 'done' => false];
             }
         }
+
         return $items;
     }
 
@@ -154,7 +159,7 @@ class PdpController extends Controller
                             $items[] = ['text' => $text, 'done' => false];
                         }
                     } elseif (is_array($it)) {
-                        $text = isset($it['text']) ? trim((string)$it['text']) : '';
+                        $text = isset($it['text']) ? trim((string) $it['text']) : '';
                         if ($text !== '') {
                             $items[] = ['text' => $text, 'comment' => null, 'done' => false];
                         }
@@ -175,6 +180,7 @@ class PdpController extends Controller
         if (empty($items)) {
             return null;
         }
+
         return json_encode($items, JSON_UNESCAPED_UNICODE);
     }
 
@@ -182,7 +188,7 @@ class PdpController extends Controller
     {
         $this->authorizeAccess($request, $pdp);
         $data = $request->validate([
-            'email' => ['required','email','exists:users,email'],
+            'email' => ['required', 'email', 'exists:users,email'],
         ]);
 
         $user = User::where('email', $data['email'])->firstOrFail();
@@ -192,14 +198,15 @@ class PdpController extends Controller
             $pdp->curators()->syncWithoutDetaching([$user->id]);
         }
 
-        return response()->json(['status' => 'ok', 'curator' => $user->only(['id','name','email'])]);
+        return response()->json(['status' => 'ok', 'curator' => $user->only(['id', 'name', 'email'])]);
     }
 
     public function curators(Request $request, Pdp $pdp)
     {
         // Only owner can list curators
         abort_unless($pdp->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
-        $list = $pdp->curators()->select('users.id','users.name','users.email')->orderBy('users.name')->get();
+        $list = $pdp->curators()->select('users.id', 'users.name', 'users.email')->orderBy('users.name')->get();
+
         return response()->json($list);
     }
 
@@ -209,16 +216,17 @@ class PdpController extends Controller
         $q = trim((string) $request->query('q', ''));
         $limit = (int) $request->query('limit', 10);
         $limit = max(1, min($limit, 20));
-        $query = User::query()->select('id','name','email')->orderBy('name');
+        $query = User::query()->select('id', 'name', 'email')->orderBy('name');
         if ($q !== '') {
-            $query->where(function($w) use ($q) {
-                $w->where('email', 'like', '%' . str_replace(['%','_'], ['\%','\_'], $q) . '%')
-                  ->orWhere('name', 'like', '%' . str_replace(['%','_'], ['\%','\_'], $q) . '%');
+            $query->where(function ($w) use ($q) {
+                $w->where('email', 'like', '%'.str_replace(['%', '_'], ['\%', '\_'], $q).'%')
+                    ->orWhere('name', 'like', '%'.str_replace(['%', '_'], ['\%', '\_'], $q).'%');
             });
         }
         // Optionally restrict to company domain (uncomment if needed)
         // $query->where('email', 'like', '%@leasoft.org');
         $users = $query->limit($limit)->get();
+
         return response()->json($users);
     }
 
@@ -226,34 +234,110 @@ class PdpController extends Controller
     {
         $this->authorizeAccess($request, $pdp);
         $pdp->load('skills');
+
         return response()->json($pdp);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title' => ['required','string','max:255'],
-            'description' => ['nullable','string'],
-            'priority' => ['required','in:Low,Medium,High'],
-            'eta' => ['nullable','string','max:255'],
-            'status' => ['required','in:Planned,In Progress,Done,Blocked'],
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'priority' => ['required', 'in:Low,Medium,High'],
+            'eta' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', 'in:Planned,In Progress,Done,Blocked'],
+            'template_keys' => ['nullable', 'array'],
+            'template_keys.*' => ['string', 'starts_with:db-'],
         ]);
 
-        $pdp = Pdp::create($data + ['user_id' => $request->user()->id]);
-        return response()->json($pdp, Response::HTTP_CREATED);
+        $templateIds = [];
+        foreach (($data['template_keys'] ?? []) as $templateKey) {
+            $id = (int) Str::after((string) $templateKey, 'db-');
+            if ($id > 0) {
+                $templateIds[] = $id;
+            }
+        }
+        $templateIds = array_values(array_unique($templateIds));
+
+        $templatesById = [];
+        if (! empty($templateIds)) {
+            $templates = PdpTemplate::query()
+                ->whereIn('id', $templateIds)
+                ->where('published', true)
+                ->get()
+                ->keyBy('id');
+
+            if ($templates->count() !== count($templateIds)) {
+                return response()->json([
+                    'message' => 'One or more selected templates are not available.',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $templatesById = $templates->all();
+        }
+
+        $pdp = Pdp::create([
+            'user_id' => $request->user()->id,
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'priority' => $data['priority'],
+            'eta' => $data['eta'] ?? null,
+            'status' => $data['status'],
+        ]);
+
+        if (! empty($templateIds)) {
+            $order = 0;
+            $existingTemplateSkillKeys = [];
+
+            foreach ($templateIds as $templateId) {
+                $template = $templatesById[$templateId] ?? null;
+                if (! $template instanceof PdpTemplate) {
+                    continue;
+                }
+
+                $templateData = (array) ($template->data ?? []);
+                $templateSkills = (array) ($templateData['skills'] ?? []);
+
+                foreach ($templateSkills as $idx => $skillData) {
+                    $templateSkillKey = (string) ($skillData['key'] ?? ('idx-'.$idx));
+                    if (isset($existingTemplateSkillKeys[$templateSkillKey])) {
+                        continue;
+                    }
+                    $existingTemplateSkillKeys[$templateSkillKey] = true;
+
+                    PdpSkill::create([
+                        'pdp_id' => $pdp->id,
+                        'skill' => (string) ($skillData['skill'] ?? ''),
+                        'description' => $skillData['description'] ?? null,
+                        'criteria' => $skillData['criteria'] ?? null,
+                        'priority' => (string) ($skillData['priority'] ?? 'Medium'),
+                        'eta' => $skillData['eta'] ?? null,
+                        'status' => (string) ($skillData['status'] ?? 'Planned'),
+                        'order_column' => $order,
+                        'template_skill_key' => $templateSkillKey,
+                        'is_manual_override' => false,
+                    ]);
+
+                    $order++;
+                }
+            }
+        }
+
+        return response()->json($pdp->fresh()->loadCount('skills'), Response::HTTP_CREATED);
     }
 
     public function update(Request $request, Pdp $pdp)
     {
         $this->authorizeAccess($request, $pdp);
         $data = $request->validate([
-            'title' => ['sometimes','required','string','max:255'],
-            'description' => ['nullable','string'],
-            'priority' => ['sometimes','required','in:Low,Medium,High'],
-            'eta' => ['nullable','string','max:255'],
-            'status' => ['sometimes','required','in:Planned,In Progress,Done,Blocked'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'priority' => ['sometimes', 'required', 'in:Low,Medium,High'],
+            'eta' => ['nullable', 'string', 'max:255'],
+            'status' => ['sometimes', 'required', 'in:Planned,In Progress,Done,Blocked'],
         ]);
         $pdp->update($data);
+
         return response()->json($pdp);
     }
 
@@ -261,12 +345,15 @@ class PdpController extends Controller
     {
         $this->authorizeAccess($request, $pdp);
         $pdp->delete();
+
         return response()->noContent();
     }
 
     protected function authorizeAccess(Request $request, Pdp $pdp): void
     {
-        if ($pdp->user_id === $request->user()->id) return;
+        if ($pdp->user_id === $request->user()->id) {
+            return;
+        }
         abort_unless($pdp->curators()->where('user_id', $request->user()->id)->exists(), Response::HTTP_FORBIDDEN);
     }
 
@@ -279,6 +366,7 @@ class PdpController extends Controller
             return response()->json(['message' => 'Cannot remove the owner from mentors'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $pdp->curators()->detach($user->id);
+
         return response()->noContent();
     }
 
@@ -299,6 +387,7 @@ class PdpController extends Controller
                 'order_column' => $s->order_column,
             ];
         }
+
         return response()->json([
             'version' => 1,
             'pdp' => [
@@ -316,21 +405,21 @@ class PdpController extends Controller
     public function import(Request $request)
     {
         $data = $request->validate([
-            'version' => ['nullable','integer'],
-            'pdp' => ['required','array'],
-            'pdp.title' => ['required','string','max:255'],
-            'pdp.description' => ['nullable','string'],
-            'pdp.priority' => ['required','in:Low,Medium,High'],
-            'pdp.eta' => ['nullable','string','max:255'],
-            'pdp.status' => ['required','in:Planned,In Progress,Done,Blocked'],
-            'skills' => ['nullable','array'],
-            'skills.*.skill' => ['required','string','max:255'],
-            'skills.*.description' => ['nullable','string'],
-            'skills.*.criteria' => ['nullable','string'],
-            'skills.*.priority' => ['required','in:Low,Medium,High'],
-            'skills.*.eta' => ['nullable','string','max:255'],
-            'skills.*.status' => ['required','in:Planned,In Progress,Done,Blocked'],
-            'skills.*.order_column' => ['nullable','integer','min:0'],
+            'version' => ['nullable', 'integer'],
+            'pdp' => ['required', 'array'],
+            'pdp.title' => ['required', 'string', 'max:255'],
+            'pdp.description' => ['nullable', 'string'],
+            'pdp.priority' => ['required', 'in:Low,Medium,High'],
+            'pdp.eta' => ['nullable', 'string', 'max:255'],
+            'pdp.status' => ['required', 'in:Planned,In Progress,Done,Blocked'],
+            'skills' => ['nullable', 'array'],
+            'skills.*.skill' => ['required', 'string', 'max:255'],
+            'skills.*.description' => ['nullable', 'string'],
+            'skills.*.criteria' => ['nullable', 'string'],
+            'skills.*.priority' => ['required', 'in:Low,Medium,High'],
+            'skills.*.eta' => ['nullable', 'string', 'max:255'],
+            'skills.*.status' => ['required', 'in:Planned,In Progress,Done,Blocked'],
+            'skills.*.order_column' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $pdpPayload = $data['pdp'];
@@ -367,21 +456,21 @@ class PdpController extends Controller
     {
         $this->authorizeAccess($request, $pdp);
         $payload = $request->validate([
-            'user_id' => ['required','integer','exists:users,id'],
+            'user_id' => ['required', 'integer', 'exists:users,id'],
         ]);
 
         $targetUserId = (int) $payload['user_id'];
         // If attempting to transfer to the same owner, just deny to avoid duplicates
-        if ($targetUserId === (int)$pdp->user_id) {
+        if ($targetUserId === (int) $pdp->user_id) {
             return response()->json(['message' => 'Cannot transfer to the same owner'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         // Create new PDP under target user with reset timeline/status
         $new = Pdp::create([
             'user_id' => $targetUserId,
-            'title' => (string)$pdp->title,
+            'title' => (string) $pdp->title,
             'description' => $pdp->description,
-            'priority' => (string)$pdp->priority,
+            'priority' => (string) $pdp->priority,
             'eta' => null,
             'status' => 'Planned',
         ]);
@@ -391,10 +480,10 @@ class PdpController extends Controller
         foreach ($skills as $index => $s) {
             PdpSkill::create([
                 'pdp_id' => $new->id,
-                'skill' => (string)$s->skill,
+                'skill' => (string) $s->skill,
                 'description' => $s->description,
-                'criteria' => $this->normalizeCriteriaForTransfer((string)($s->criteria ?? '')),
-                'priority' => (string)$s->priority,
+                'criteria' => $this->normalizeCriteriaForTransfer((string) ($s->criteria ?? '')),
+                'priority' => (string) $s->priority,
                 'eta' => null,
                 'status' => 'Planned',
                 'order_column' => $s->order_column ?? $index,
@@ -414,14 +503,15 @@ class PdpController extends Controller
             $p = (array) ($data['pdp'] ?? []);
             $skills = (array) ($data['skills'] ?? []);
             $list[] = [
-                'key' => 'db-' . $tpl->id,
+                'key' => 'db-'.$tpl->id,
                 'title' => $p['title'] ?? ($tpl->title ?: 'Template'),
                 'description' => $p['description'] ?? $tpl->description,
-                'priority' => (string)($p['priority'] ?? 'Medium'),
-                'status' => (string)($p['status'] ?? 'Planned'),
+                'priority' => (string) ($p['priority'] ?? 'Medium'),
+                'status' => (string) ($p['status'] ?? 'Planned'),
                 'skills_count' => count($skills),
             ];
         }
+
         return response()->json($list);
     }
 
@@ -438,11 +528,11 @@ class PdpController extends Controller
 
         $new = Pdp::create([
             'user_id' => $request->user()->id,
-            'title' => (string)($p['title'] ?? 'PDP Template'),
+            'title' => (string) ($p['title'] ?? 'PDP Template'),
             'description' => $p['description'] ?? null,
-            'priority' => (string)($p['priority'] ?? 'Medium'),
+            'priority' => (string) ($p['priority'] ?? 'Medium'),
             'eta' => $p['eta'] ?? null,
-            'status' => (string)($p['status'] ?? 'Planned'),
+            'status' => (string) ($p['status'] ?? 'Planned'),
             'template_id' => $record->id,
         ]);
 
@@ -450,15 +540,15 @@ class PdpController extends Controller
         $order = 0;
         foreach ($skills as $s) {
             // Ensure we have a stable template-skill key
-            $templateKey = (string)($s['key'] ?? ('idx-' . $order));
+            $templateKey = (string) ($s['key'] ?? ('idx-'.$order));
             PdpSkill::create([
                 'pdp_id' => $new->id,
-                'skill' => (string)$s['skill'],
+                'skill' => (string) $s['skill'],
                 'description' => $s['description'] ?? null,
                 'criteria' => $s['criteria'] ?? null,
-                'priority' => (string)($s['priority'] ?? 'Medium'),
+                'priority' => (string) ($s['priority'] ?? 'Medium'),
                 'eta' => $s['eta'] ?? null,
-                'status' => (string)($s['status'] ?? 'Planned'),
+                'status' => (string) ($s['status'] ?? 'Planned'),
                 'order_column' => $s['order_column'] ?? $order,
                 'template_skill_key' => $templateKey,
                 'is_manual_override' => false,
@@ -491,8 +581,8 @@ class PdpController extends Controller
 
         // Optional subset of skill keys to assign
         $payload = $request->validate([
-            'keys' => ['nullable','array'],
-            'keys.*' => ['string']
+            'keys' => ['nullable', 'array'],
+            'keys.*' => ['string'],
         ]);
         $onlyKeys = isset($payload['keys']) && is_array($payload['keys']) ? array_flip($payload['keys']) : null;
 
@@ -507,8 +597,8 @@ class PdpController extends Controller
         $maxOrder = (int) ($pdp->skills()->max('order_column') ?? -1);
 
         foreach ($skills as $idx => $s) {
-            $templateKey = (string)($s['key'] ?? ('idx-' . $idx));
-            if ($onlyKeys !== null && !isset($onlyKeys[$templateKey])) {
+            $templateKey = (string) ($s['key'] ?? ('idx-'.$idx));
+            if ($onlyKeys !== null && ! isset($onlyKeys[$templateKey])) {
                 continue; // skip not selected
             }
             if (isset($existingKeys[$templateKey])) {
@@ -517,12 +607,12 @@ class PdpController extends Controller
             $maxOrder++;
             $created = PdpSkill::create([
                 'pdp_id' => $pdp->id,
-                'skill' => (string)$s['skill'],
+                'skill' => (string) $s['skill'],
                 'description' => $s['description'] ?? null,
                 'criteria' => $s['criteria'] ?? null,
-                'priority' => (string)($s['priority'] ?? 'Medium'),
+                'priority' => (string) ($s['priority'] ?? 'Medium'),
                 'eta' => $s['eta'] ?? null,
-                'status' => (string)($s['status'] ?? 'Planned'),
+                'status' => (string) ($s['status'] ?? 'Planned'),
                 'order_column' => $s['order_column'] ?? $maxOrder,
                 'template_skill_key' => $templateKey,
                 'is_manual_override' => false,
@@ -544,21 +634,21 @@ class PdpController extends Controller
         abort_unless($request->user() && $request->user()->is_moderator, Response::HTTP_FORBIDDEN);
         // Accept the same shape as import/export JSON
         $data = $request->validate([
-            'version' => ['nullable','integer'],
-            'pdp' => ['required','array'],
-            'pdp.title' => ['required','string','max:255'],
-            'pdp.description' => ['nullable','string'],
-            'pdp.priority' => ['nullable','in:Low,Medium,High'],
-            'pdp.eta' => ['nullable','string','max:255'],
-            'pdp.status' => ['nullable','in:Planned,In Progress,Done,Blocked'],
-            'skills' => ['nullable','array'],
-            'skills.*.skill' => ['required','string','max:255'],
-            'skills.*.description' => ['nullable','string'],
-            'skills.*.criteria' => ['nullable','string'],
-            'skills.*.priority' => ['nullable','in:Low,Medium,High'],
-            'skills.*.eta' => ['nullable','string','max:255'],
-            'skills.*.status' => ['nullable','in:Planned,In Progress,Done,Blocked'],
-            'skills.*.order_column' => ['nullable','integer','min:0'],
+            'version' => ['nullable', 'integer'],
+            'pdp' => ['required', 'array'],
+            'pdp.title' => ['required', 'string', 'max:255'],
+            'pdp.description' => ['nullable', 'string'],
+            'pdp.priority' => ['nullable', 'in:Low,Medium,High'],
+            'pdp.eta' => ['nullable', 'string', 'max:255'],
+            'pdp.status' => ['nullable', 'in:Planned,In Progress,Done,Blocked'],
+            'skills' => ['nullable', 'array'],
+            'skills.*.skill' => ['required', 'string', 'max:255'],
+            'skills.*.description' => ['nullable', 'string'],
+            'skills.*.criteria' => ['nullable', 'string'],
+            'skills.*.priority' => ['nullable', 'in:Low,Medium,High'],
+            'skills.*.eta' => ['nullable', 'string', 'max:255'],
+            'skills.*.status' => ['nullable', 'in:Planned,In Progress,Done,Blocked'],
+            'skills.*.order_column' => ['nullable', 'integer', 'min:0'],
         ]);
 
         // Normalize missing defaults for template (no timeline/progress by default)
@@ -578,28 +668,28 @@ class PdpController extends Controller
                 'status' => 'Planned',
                 'order_column' => $s['order_column'] ?? $order,
                 // Stable key for future sync; UUID preferred, fallback to positional key
-                'key' => (string)($s['key'] ?? (Str::uuid()->toString())),
+                'key' => (string) ($s['key'] ?? (Str::uuid()->toString())),
             ];
             $order++;
         }
         $payload = [
-            'version' => (int)($data['version'] ?? 1),
+            'version' => (int) ($data['version'] ?? 1),
             'pdp' => $p,
             'skills' => $skills,
         ];
 
         $tpl = PdpTemplate::create([
             'user_id' => $request->user()->id,
-            'title' => (string)($p['title'] ?? 'Template'),
+            'title' => (string) ($p['title'] ?? 'Template'),
             'description' => $p['description'] ?? null,
             'data' => $payload,
             'published' => true,
         ]);
 
         return response()->json([
-            'key' => 'db-' . $tpl->id,
-            'id' => (int)$tpl->id,
-            'title' => (string)($p['title'] ?? 'Template'),
+            'key' => 'db-'.$tpl->id,
+            'id' => (int) $tpl->id,
+            'title' => (string) ($p['title'] ?? 'Template'),
             'skills_count' => count($skills),
         ], Response::HTTP_CREATED);
     }
@@ -614,7 +704,8 @@ class PdpController extends Controller
         $tpl = PdpTemplate::query()->where('id', $id)->first();
         abort_unless($tpl, Response::HTTP_NOT_FOUND);
 
-        app(\App\Services\PdpTemplateSyncService::class)->sync($tpl);
+        app(PdpTemplateSyncService::class)->sync($tpl);
+
         return response()->json(['status' => 'ok']);
     }
 
@@ -629,7 +720,7 @@ class PdpController extends Controller
         abort_unless($tpl, Response::HTTP_NOT_FOUND);
 
         return response()->json([
-            'key' => 'db-' . $tpl->id,
+            'key' => 'db-'.$tpl->id,
             'id' => (int) $tpl->id,
             'published' => (bool) $tpl->published,
             'title' => (string) $tpl->title,
@@ -649,22 +740,22 @@ class PdpController extends Controller
         abort_unless($tpl, Response::HTTP_NOT_FOUND);
 
         $data = $request->validate([
-            'version' => ['nullable','integer'],
-            'pdp' => ['required','array'],
-            'pdp.title' => ['required','string','max:255'],
-            'pdp.description' => ['nullable','string'],
-            'pdp.priority' => ['nullable','in:Low,Medium,High'],
-            'pdp.eta' => ['nullable','string','max:255'],
-            'pdp.status' => ['nullable','in:Planned,In Progress,Done,Blocked'],
-            'skills' => ['nullable','array'],
-            'skills.*.skill' => ['required','string','max:255'],
-            'skills.*.description' => ['nullable','string'],
-            'skills.*.criteria' => ['nullable','string'],
-            'skills.*.priority' => ['nullable','in:Low,Medium,High'],
-            'skills.*.eta' => ['nullable','string','max:255'],
-            'skills.*.status' => ['nullable','in:Planned,In Progress,Done,Blocked'],
-            'skills.*.order_column' => ['nullable','integer','min:0'],
-            'skills.*.key' => ['nullable','string'],
+            'version' => ['nullable', 'integer'],
+            'pdp' => ['required', 'array'],
+            'pdp.title' => ['required', 'string', 'max:255'],
+            'pdp.description' => ['nullable', 'string'],
+            'pdp.priority' => ['nullable', 'in:Low,Medium,High'],
+            'pdp.eta' => ['nullable', 'string', 'max:255'],
+            'pdp.status' => ['nullable', 'in:Planned,In Progress,Done,Blocked'],
+            'skills' => ['nullable', 'array'],
+            'skills.*.skill' => ['required', 'string', 'max:255'],
+            'skills.*.description' => ['nullable', 'string'],
+            'skills.*.criteria' => ['nullable', 'string'],
+            'skills.*.priority' => ['nullable', 'in:Low,Medium,High'],
+            'skills.*.eta' => ['nullable', 'string', 'max:255'],
+            'skills.*.status' => ['nullable', 'in:Planned,In Progress,Done,Blocked'],
+            'skills.*.order_column' => ['nullable', 'integer', 'min:0'],
+            'skills.*.key' => ['nullable', 'string'],
         ]);
 
         // Normalize defaults similar to createTemplate
@@ -684,19 +775,19 @@ class PdpController extends Controller
                 'eta' => null,
                 'status' => 'Planned',
                 'order_column' => $s['order_column'] ?? $order,
-                'key' => (string)($s['key'] ?? (Str::uuid()->toString())),
+                'key' => (string) ($s['key'] ?? (Str::uuid()->toString())),
             ];
             $order++;
         }
 
         $payload = [
-            'version' => (int)($data['version'] ?? ($tpl->data['version'] ?? 1)),
+            'version' => (int) ($data['version'] ?? ($tpl->data['version'] ?? 1)),
             'pdp' => $p,
             'skills' => $skills,
         ];
 
         $tpl->update([
-            'title' => (string)($p['title'] ?? $tpl->title),
+            'title' => (string) ($p['title'] ?? $tpl->title),
             'description' => $p['description'] ?? null,
             'data' => $payload,
         ]);
@@ -706,12 +797,12 @@ class PdpController extends Controller
         // - update existing skills' fields (including criteria) unless they were manually overridden
         // - add newly added skills
         // - remove skills deleted from the template if they were not manually overridden
-        app(\App\Services\PdpTemplateSyncService::class)->sync($tpl);
+        app(PdpTemplateSyncService::class)->sync($tpl);
 
         return response()->json([
-            'key' => 'db-' . $tpl->id,
-            'id' => (int)$tpl->id,
-            'title' => (string)$tpl->title,
+            'key' => 'db-'.$tpl->id,
+            'id' => (int) $tpl->id,
+            'title' => (string) $tpl->title,
             'skills_count' => count($skills),
             'synced' => true,
         ]);
@@ -732,11 +823,11 @@ class PdpController extends Controller
         $skills = (array) ($data['skills'] ?? []);
         $keys = [];
         foreach ($skills as $idx => $s) {
-            $keys[] = (string)($s['key'] ?? ('idx-' . $idx));
+            $keys[] = (string) ($s['key'] ?? ('idx-'.$idx));
         }
 
         // Remove PDP skills that originated from this template (but keep manual overrides)
-        if (!empty($keys)) {
+        if (! empty($keys)) {
             PdpSkill::query()
                 ->whereIn('template_skill_key', $keys)
                 ->where('is_manual_override', false)
@@ -756,7 +847,7 @@ class PdpController extends Controller
     private function templatesCatalog(): array
     {
         // Criteria are stored as JSON string in the same format used in the app.
-        $json = static fn(array $items) => json_encode($items, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        $json = static fn (array $items) => json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         return [
             'junior_backend' => [

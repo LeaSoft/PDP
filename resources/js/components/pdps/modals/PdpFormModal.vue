@@ -5,13 +5,14 @@ import {
     DialogScrollContent,
     DialogTitle,
 } from '@/components/ui/dialog';
-import type { Pdp } from '@/pages/pdps/Index.vue';
+import type { Pdp, TemplateOption } from '@/pages/pdps/Index.vue';
 import { reactive, watch } from 'vue';
 
 const props = defineProps<{
     open: boolean;
     form: Pdp;
     editingId: number | null;
+    templateOptions: TemplateOption[];
 }>();
 const emit = defineEmits<{
     (e: 'update:open', v: boolean): void;
@@ -26,12 +27,18 @@ const localForm = reactive<Pdp>({
     priority: 'Medium',
     eta: '',
     status: 'Planned',
+    template_keys: [],
 });
 
 watch(
     () => props.open,
     (v) => {
-        if (v) Object.assign(localForm, props.form);
+        if (v) {
+            Object.assign(localForm, props.form);
+            localForm.template_keys = Array.isArray(props.form.template_keys)
+                ? [...props.form.template_keys]
+                : [];
+        }
     },
 );
 
@@ -121,6 +128,43 @@ function requestDelete() {
                             class="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
                             placeholder="Short description of this plan"
                         ></textarea>
+                    </div>
+                    <div v-if="!props.editingId" class="md:col-span-2">
+                        <label class="mb-1 block text-xs font-medium"
+                            >Skill templates</label
+                        >
+                        <div class="max-h-56 overflow-auto rounded-md border p-2">
+                            <p
+                                v-if="props.templateOptions.length === 0"
+                                class="text-xs text-muted-foreground"
+                            >
+                                No templates available.
+                            </p>
+                            <label
+                                v-for="template in props.templateOptions"
+                                :key="template.key"
+                                class="flex cursor-pointer items-start gap-2 rounded px-1 py-1.5 hover:bg-muted/50"
+                            >
+                                <input
+                                    v-model="localForm.template_keys"
+                                    type="checkbox"
+                                    :value="template.key"
+                                    class="mt-0.5"
+                                />
+                                <span class="min-w-0 text-xs">
+                                    <span class="block font-medium">
+                                        {{ template.title }}
+                                    </span>
+                                    <span class="text-muted-foreground">
+                                        {{ template.skills_count }} skills
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <p class="mt-1 text-[11px] text-muted-foreground">
+                            Selected templates will be used to pre-fill skills
+                            in the new PDP.
+                        </p>
                     </div>
                 </div>
 

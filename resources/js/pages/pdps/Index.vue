@@ -28,6 +28,7 @@ export type Pdp = {
     status: 'Planned' | 'In Progress' | 'Done' | 'Blocked';
     skills_count?: number;
     user?: { id: number; name?: string; email: string };
+    template_keys?: string[];
 };
 
 export type PdpSkill = {
@@ -40,6 +41,13 @@ export type PdpSkill = {
     eta?: string;
     status: 'Planned' | 'In Progress' | 'Done' | 'Blocked';
     order_column?: number;
+};
+
+export type TemplateOption = {
+    key: string;
+    title: string;
+    description?: string;
+    skills_count: number;
 };
 
 interface Curator {
@@ -61,6 +69,7 @@ const sharedPdps = ref<Pdp[]>([]);
 const selectedPdpId = ref<number | null>(null);
 const skills = ref<PdpSkill[]>([]);
 const curators = ref<Curator[]>([]);
+const templateOptions = ref<TemplateOption[]>([]);
 
 // Collapsible sections state
 const collapseOwned = ref(false);
@@ -124,6 +133,7 @@ const pdpForm = reactive<Pdp>({
     priority: 'Medium',
     eta: '',
     status: 'Planned',
+    template_keys: [],
 });
 
 const showSkillModal = ref(false);
@@ -453,6 +463,15 @@ async function loadSharedPdps() {
     }
 }
 
+async function loadTemplateOptions() {
+    try {
+        const data = await http('/pdps/templates.json');
+        templateOptions.value = Array.isArray(data) ? data : [];
+    } catch {
+        templateOptions.value = [];
+    }
+}
+
 async function loadSkills(pdpId: number) {
     skills.value = await http(`/pdps/${pdpId}/skills.json`);
     // Refresh unseen indicators after skills loaded
@@ -696,13 +715,14 @@ function openCreatePdp() {
         priority: 'Medium',
         eta: '',
         status: 'Planned',
+        template_keys: [],
     });
     showPdpModal.value = true;
 }
 
 function openEditPdp(p: Pdp) {
     editingPdpId.value = p.id;
-    Object.assign(pdpForm, { ...p });
+    Object.assign(pdpForm, { ...p, template_keys: [] });
     showPdpModal.value = true;
 }
 
@@ -711,13 +731,19 @@ async function savePdp() {
         notifyError('Please enter PDP title');
         return;
     }
-    const body = JSON.stringify({
+    const payload: Record<string, unknown> = {
         title: pdpForm.title,
         description: pdpForm.description,
         priority: pdpForm.priority,
         eta: pdpForm.eta,
         status: pdpForm.status,
-    });
+    };
+    if (!editingPdpId.value) {
+        payload.template_keys = Array.isArray(pdpForm.template_keys)
+            ? pdpForm.template_keys
+            : [];
+    }
+    const body = JSON.stringify(payload);
     if (editingPdpId.value) {
         await http(`/pdps/${editingPdpId.value}.json`, { method: 'PUT', body });
     } else {
@@ -1003,7 +1029,7 @@ onMounted(async () => {
             activeTab.value = 'Manage';
         }
     } catch {}
-    await Promise.all([loadPdps(), loadSharedPdps()]);
+    await Promise.all([loadPdps(), loadSharedPdps(), loadTemplateOptions()]);
     // Ensure unseen badges are available on initial page open (without deep links)
     if (!deepPdp) {
         await refreshUnseen();
@@ -1206,6 +1232,7 @@ async function refreshUnseen() {
                 v-model:open="showPdpModal"
                 :form="pdpForm"
                 :editing-id="editingPdpId"
+                :template-options="templateOptions"
                 @save="onPdpModalSave"
                 @request-delete="deletePdp"
             />
