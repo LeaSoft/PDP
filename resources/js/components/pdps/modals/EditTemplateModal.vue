@@ -28,6 +28,61 @@ interface EditSkill {
 }
 
 const editSkillsContainer = ref<HTMLDivElement | null>(null);
+const scrollableBody = ref<HTMLDivElement | null>(null);
+const modalWrapper = ref<HTMLDivElement | null>(null);
+let scrollRaf: number | null = null;
+let scrollSpeed = 0;
+
+function setAutoScroll(speed: number) {
+    scrollSpeed = speed;
+    if (scrollRaf !== null) return;
+    const step = () => {
+        if (scrollSpeed !== 0 && scrollableBody.value) {
+            scrollableBody.value.scrollTop += scrollSpeed;
+        }
+        if (scrollSpeed !== 0) {
+            scrollRaf = requestAnimationFrame(step);
+        } else {
+            scrollRaf = null;
+        }
+    };
+    scrollRaf = requestAnimationFrame(step);
+}
+
+function stopAutoScroll() {
+    scrollSpeed = 0;
+    if (scrollRaf !== null) {
+        cancelAnimationFrame(scrollRaf);
+        scrollRaf = null;
+    }
+}
+
+function onDragPointerMove(e: PointerEvent) {
+    if (!modalWrapper.value) return;
+    const rect = modalWrapper.value.getBoundingClientRect();
+    const ZONE = 80;
+
+    if (e.clientY < rect.top + ZONE) {
+        const ratio = Math.max(0, 1 - (e.clientY - rect.top) / ZONE);
+        setAutoScroll(-Math.ceil(ratio * 15));
+    } else if (e.clientY > rect.bottom - ZONE) {
+        const ratio = Math.max(0, 1 - (rect.bottom - e.clientY) / ZONE);
+        setAutoScroll(Math.ceil(ratio * 15));
+    } else {
+        stopAutoScroll();
+    }
+}
+
+function onDragStart() {
+    document.addEventListener('pointermove', onDragPointerMove);
+}
+
+function onDragEnd() {
+    stopAutoScroll();
+    document.removeEventListener('pointermove', onDragPointerMove);
+    recalcEditOrder();
+}
+
 const editTemplate = ref<{
     title: string;
     description: string;
@@ -171,6 +226,7 @@ async function saveEdit() {
         <DialogContent
             class="flex max-h-[85vh] max-w-3xl flex-col gap-0 p-0"
         >
+            <div ref="modalWrapper" class="flex min-h-0 flex-1 flex-col">
             <div
                 class="sticky top-0 z-10 flex items-center rounded-t-lg border-b bg-background px-6 py-4 pr-14"
             >
@@ -179,7 +235,7 @@ async function saveEdit() {
                 >
             </div>
 
-            <div class="flex-1 overflow-y-auto">
+            <div ref="scrollableBody" class="flex-1 overflow-y-auto">
             <div class="space-y-4 px-6 py-4">
                 <div>
                     <label class="mb-1 block text-xs font-medium"
@@ -219,7 +275,8 @@ async function saveEdit() {
                             v-model="editTemplate.skills"
                             handle=".drag-handle"
                             :animation="150"
-                            @end="recalcEditOrder"
+                            @start="onDragStart"
+                            @end="onDragEnd"
                         >
                             <div
                                 v-for="(s, i) in editTemplate.skills"
@@ -310,6 +367,7 @@ async function saveEdit() {
                 >
                     Save
                 </button>
+            </div>
             </div>
         </DialogContent>
     </Dialog>
