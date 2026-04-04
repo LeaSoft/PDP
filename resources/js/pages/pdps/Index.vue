@@ -269,6 +269,18 @@ async function openProgressModal(s: PdpSkill, index: number) {
     } catch {}
 }
 
+async function openProgressModalFromAnnex(skillId: number, criterionIndex: number, criterionText: string) {
+    if (!selectedPdp.value) return;
+    progressState.pdp_id = selectedPdp.value.id;
+    progressState.skill_id = skillId;
+    progressState.index = criterionIndex;
+    progressState.text = criterionText;
+    progressState.entries = [];
+    progressState.newNote = '';
+    showProgressModal.value = true;
+    await loadProgressEntries();
+}
+
 async function loadProgressEntries() {
     progressState.loading = true;
     try {
@@ -1163,6 +1175,12 @@ async function refreshUnseen() {
                         >
                             <button
                                 class="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
+                                @click="downloadCurrentPdpAnnex"
+                            >
+                                Download Annex
+                            </button>
+                            <button
+                                class="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
                                 @click="openEditPdp(selectedPdp as any)"
                             >
                                 Edit PDP
@@ -1185,7 +1203,7 @@ async function refreshUnseen() {
                                 class="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm hover:opacity-90"
                                 @click="downloadCurrentPdpAnnex"
                             >
-                                Download current PDP
+                                Download Annex
                             </button>
                         </div>
                     </div>
@@ -1223,6 +1241,8 @@ async function refreshUnseen() {
                         v-else
                         :selected-pdp="selectedPdp as any"
                         :annex="annex"
+                        :is-owner="selectedPdpIsOwner"
+                        @openProgressModal="openProgressModalFromAnnex"
                     />
                 </div>
             </div>
