@@ -6,7 +6,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import type { Pdp, TemplateOption } from '@/pages/pdps/Index.vue';
-import { reactive, watch } from 'vue';
+import { reactive, ref, watch } from 'vue';
 
 const props = defineProps<{
     open: boolean;
@@ -17,7 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'update:open', v: boolean): void;
     (e: 'save', v: Pdp): void;
-    (e: 'request-delete', id: number): void;
+    (e: 'confirm-delete', id: number): void;
 }>();
 
 const localForm = reactive<Pdp>({
@@ -30,6 +30,8 @@ const localForm = reactive<Pdp>({
     template_keys: [],
 });
 
+const confirmingDelete = ref(false);
+
 watch(
     () => props.open,
     (v) => {
@@ -38,6 +40,8 @@ watch(
             localForm.template_keys = Array.isArray(props.form.template_keys)
                 ? [...props.form.template_keys]
                 : [];
+        } else {
+            confirmingDelete.value = false;
         }
     },
 );
@@ -48,9 +52,10 @@ function close() {
 function save() {
     emit('save', { ...localForm });
 }
-function requestDelete() {
+function doDelete() {
     if (!props.editingId) return;
-    emit('request-delete', props.editingId);
+    confirmingDelete.value = false;
+    emit('confirm-delete', props.editingId);
 }
 </script>
 
@@ -182,11 +187,29 @@ function requestDelete() {
                             Delete this PDP and all its skills.
                         </p>
                         <button
+                            v-if="!confirmingDelete"
                             class="rounded border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            @click="requestDelete"
+                            @click="confirmingDelete = true"
                         >
                             Delete PDP
                         </button>
+                        <div v-else class="flex items-center gap-2">
+                            <span class="text-xs text-muted-foreground"
+                                >Are you sure?</span
+                            >
+                            <button
+                                class="rounded border px-3 py-1.5 text-xs hover:bg-muted"
+                                @click="confirmingDelete = false"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                class="rounded border border-destructive bg-destructive px-3 py-1.5 text-xs text-destructive-foreground hover:opacity-90"
+                                @click="doDelete"
+                            >
+                                Yes, delete
+                            </button>
+                        </div>
                     </div>
                 </details>
             </div>

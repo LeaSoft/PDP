@@ -773,11 +773,7 @@ async function savePdp() {
     }
 }
 
-async function deletePdp(id: number) {
-    {
-        const ok = await confirmDialog('Delete this PDP and all its skills?');
-        if (!ok) return;
-    }
+async function deletePdpById(id: number) {
     await http(`/pdps/${id}.json`, { method: 'DELETE' });
     if (editingPdpId.value === id) {
         showPdpModal.value = false;
@@ -785,6 +781,12 @@ async function deletePdp(id: number) {
     }
     if (selectedPdpId.value === id) selectedPdpId.value = null;
     await loadPdps();
+}
+
+async function deletePdp(id: number) {
+    const ok = await confirmDialog('Delete this PDP and all its skills?');
+    if (!ok) return;
+    await deletePdpById(id);
 }
 
 // Skills modal
@@ -1254,7 +1256,7 @@ async function refreshUnseen() {
                 :editing-id="editingPdpId"
                 :template-options="templateOptions"
                 @save="onPdpModalSave"
-                @request-delete="deletePdp"
+                @confirm-delete="deletePdpById"
             />
 
             <!-- Skill Modal -->
