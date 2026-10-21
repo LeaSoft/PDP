@@ -85,7 +85,7 @@ services:
       - app
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin
     container_name: phpmyadmin_app
     restart: always
     ports:

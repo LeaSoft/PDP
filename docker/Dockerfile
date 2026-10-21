@@ -1,7 +1,7 @@
 # ======================
 # Base PHP-FPM image
 # ======================
-FROM php:8.2-fpm AS base
+FROM php:8.5-fpm AS base
 
 WORKDIR /var/www/html
 
