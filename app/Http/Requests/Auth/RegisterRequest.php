@@ -8,6 +8,9 @@ use Illuminate\Validation\Rules;
 
 class RegisterRequest extends FormRequest
 {
+    // Accounts are for company addresses only (also enforced when the email changes in profile settings)
+    public const COMPANY_EMAIL_RULE = 'regex:/^[^@]+@leasoft\.org$/i';
+
     public function authorize(): bool
     {
         return true;
@@ -19,7 +22,7 @@ class RegisterRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => [
                 'required', 'string', 'lowercase', 'email', 'max:255',
-                'regex:/^[^@]+@leasoft\.org$/i',
+                self::COMPANY_EMAIL_RULE,
                 'unique:' . User::class,
             ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],

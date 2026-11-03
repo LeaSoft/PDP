@@ -186,7 +186,8 @@ class PdpController extends Controller
 
     public function assignCurator(Request $request, Pdp $pdp)
     {
-        $this->authorizeAccess($request, $pdp);
+        // Only owner can add curators
+        abort_unless($pdp->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
         $data = $request->validate([
             'email' => ['required', 'email', 'exists:users,email'],
         ]);
@@ -243,7 +244,7 @@ class PdpController extends Controller
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:20000'],
             'priority' => ['required', 'in:Low,Medium,High'],
             'eta' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:Planned,In Progress,Done,Blocked'],
@@ -332,7 +333,7 @@ class PdpController extends Controller
         $this->authorizeAccess($request, $pdp);
         $data = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:20000'],
             'priority' => ['sometimes', 'required', 'in:Low,Medium,High'],
             'eta' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'required', 'in:Planned,In Progress,Done,Blocked'],
@@ -344,7 +345,8 @@ class PdpController extends Controller
 
     public function destroy(Request $request, Pdp $pdp)
     {
-        $this->authorizeAccess($request, $pdp);
+        // Only owner can delete the PDP (curators may still edit it)
+        abort_unless($pdp->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
         $pdp->delete();
 
         return response()->noContent();
@@ -409,14 +411,14 @@ class PdpController extends Controller
             'version' => ['nullable', 'integer'],
             'pdp' => ['required', 'array'],
             'pdp.title' => ['required', 'string', 'max:255'],
-            'pdp.description' => ['nullable', 'string'],
+            'pdp.description' => ['nullable', 'string', 'max:20000'],
             'pdp.priority' => ['required', 'in:Low,Medium,High'],
             'pdp.eta' => ['nullable', 'string', 'max:255'],
             'pdp.status' => ['required', 'in:Planned,In Progress,Done,Blocked'],
-            'skills' => ['nullable', 'array'],
+            'skills' => ['nullable', 'array', 'max:100'],
             'skills.*.skill' => ['required', 'string', 'max:255'],
-            'skills.*.description' => ['nullable', 'string'],
-            'skills.*.criteria' => ['nullable', 'string'],
+            'skills.*.description' => ['nullable', 'string', 'max:20000'],
+            'skills.*.criteria' => ['nullable', 'string', 'max:20000'],
             'skills.*.priority' => ['required', 'in:Low,Medium,High'],
             'skills.*.eta' => ['nullable', 'string', 'max:255'],
             'skills.*.status' => ['required', 'in:Planned,In Progress,Done,Blocked'],
@@ -455,7 +457,8 @@ class PdpController extends Controller
     // Transfer PDP to another user (no progress and no done checkmarks)
     public function transfer(Request $request, Pdp $pdp)
     {
-        $this->authorizeAccess($request, $pdp);
+        // Only owner can share a copy
+        abort_unless($pdp->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
         $payload = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
         ]);

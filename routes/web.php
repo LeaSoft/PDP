@@ -71,8 +71,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/pdps/{pdp}/curators/{user}.json', [PdpController::class, 'removeCurator']);
     Route::get('/pdps/{pdp}.json', [PdpController::class, 'show']);
     Route::get('/pdps/{pdp}/export.json', [PdpController::class, 'export']);
-    Route::post('/pdps/{pdp}/transfer.json', [PdpController::class, 'transfer']);
-    Route::post('/pdps/import.json', [PdpController::class, 'import']);
+    Route::post('/pdps/{pdp}/transfer.json', [PdpController::class, 'transfer'])->middleware('throttle:10,1');
+    Route::post('/pdps/import.json', [PdpController::class, 'import'])->middleware('throttle:10,1');
     Route::put('/pdps/{pdp}.json', [PdpController::class, 'update']);
     Route::delete('/pdps/{pdp}.json', [PdpController::class, 'destroy']);
 

@@ -31,8 +31,8 @@ class PdpSkillController extends Controller
         $this->authorizePdp($request, $pdp);
         $data = $request->validate([
             'skill' => ['required','string','max:255'],
-            'description' => ['nullable','string'],
-            'criteria' => ['nullable','string'],
+            'description' => ['nullable','string','max:20000'],
+            'criteria' => ['nullable','string','max:20000'],
             'priority' => ['required','in:Low,Medium,High'],
             'eta' => ['nullable','string','max:255'],
             'status' => ['required','in:Planned,In Progress,Done,Blocked'],
@@ -48,8 +48,8 @@ class PdpSkillController extends Controller
         abort_unless($skill->pdp_id === $pdp->id, Response::HTTP_FORBIDDEN);
         $data = $request->validate([
             'skill' => ['sometimes','required','string','max:255'],
-            'description' => ['nullable','string'],
-            'criteria' => ['nullable','string'],
+            'description' => ['nullable','string','max:20000'],
+            'criteria' => ['nullable','string','max:20000'],
             'priority' => ['sometimes','required','in:Low,Medium,High'],
             'eta' => ['nullable','string','max:255'],
             'status' => ['sometimes','required','in:Planned,In Progress,Done,Blocked'],
