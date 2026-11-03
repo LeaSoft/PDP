@@ -216,7 +216,8 @@ class PdpController extends Controller
         $q = trim((string) $request->query('q', ''));
         $limit = (int) $request->query('limit', 10);
         $limit = max(1, min($limit, 20));
-        $query = User::query()->select('id', 'name', 'email')->orderBy('name');
+        // Skip the current user: you can't share with or mentor yourself
+        $query = User::query()->select('id', 'name', 'email')->whereKeyNot($request->user()->id)->orderBy('name');
         if ($q !== '') {
             $query->where(function ($w) use ($q) {
                 $w->where('email', 'like', '%'.str_replace(['%', '_'], ['\%', '\_'], $q).'%')

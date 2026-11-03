@@ -269,7 +269,11 @@ async function openProgressModal(s: PdpSkill, index: number) {
     } catch {}
 }
 
-async function openProgressModalFromAnnex(skillId: number, criterionIndex: number, criterionText: string) {
+async function openProgressModalFromAnnex(
+    skillId: number,
+    criterionIndex: number,
+    criterionText: string,
+) {
     if (!selectedPdp.value) return;
     progressState.pdp_id = selectedPdp.value.id;
     progressState.skill_id = skillId;
@@ -891,62 +895,35 @@ function selectPdpFromShared(id: number) {
     }
 }
 
+// Search query for the mentor / share pickers in ManageTab; an empty query lists the first users
 const curatorEmail = ref('');
-const selectedUserId = ref<number | null>(null);
-const userSearch = ref('');
 const userOptions = ref<Curator[]>([]);
-const showUserDropdown = ref(false);
 let userSearchTimer: number | null = null;
 
-// Click outside for curator picker is handled inside ManageTab component
+watch(
+    curatorEmail,
+    (v) => {
+        if (userSearchTimer) clearTimeout(userSearchTimer as any);
+        userSearchTimer = window.setTimeout(async () => {
+            try {
+                const data = await http(
+                    '/users.search.json?q=' + encodeURIComponent(v.trim()),
+                );
+                userOptions.value = Array.isArray(data) ? data : [];
+            } catch {
+                userOptions.value = [];
+            }
+        }, 200);
+    },
+    { immediate: true },
+);
 
-watch(curatorEmail, (v) => {
-    selectedUserId.value = null;
-    userSearch.value = v;
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || '');
-    if (!v || v.length < 1) {
-        userOptions.value = [];
-        showUserDropdown.value = false;
-        return;
-    }
-    if (isEmail) {
-        showUserDropdown.value = false;
-        return;
-    }
-    if (userSearchTimer) clearTimeout(userSearchTimer as any);
-    userSearchTimer = window.setTimeout(async () => {
-        try {
-            const data = await http(
-                '/users.search.json?q=' + encodeURIComponent(v),
-            );
-            userOptions.value = Array.isArray(data) ? data : [];
-            showUserDropdown.value = userOptions.value.length > 0;
-        } catch {
-            userOptions.value = [];
-            showUserDropdown.value = false;
-        }
-    }, 200);
-});
-
-function selectUserOption(u: Curator) {
-    curatorEmail.value = u.email;
-    selectedUserId.value = u.id;
-    showUserDropdown.value = false;
-}
-
-// dropdown visibility is controlled inside ManageTab
-
-async function assignCurator() {
-    const email = curatorEmail.value.trim();
+async function assignCurator(u: Curator) {
     if (!selectedPdpId.value) return;
-    if (!email || !email.includes('@')) {
-        notifyError('Enter a valid email');
-        return;
-    }
     try {
         const res = await http(
             `/pdps/${selectedPdpId.value}/assign-curator.json`,
-            { method: 'POST', body: JSON.stringify({ email }) },
+            { method: 'POST', body: JSON.stringify({ email: u.email }) },
         );
         if (res?.curator) {
             const exists = curators.value.some((c) => c.id === res.curator.id);
@@ -977,48 +954,24 @@ async function removeCurator(c: Curator) {
     }
 }
 
-async function shareToUser() {
+async function shareToUser(u: Curator) {
     if (!selectedPdpId.value) return;
     if (!selectedPdpIsOwner.value) {
         notifyError('Only the owner can share the PDP');
         return;
     }
-    const email = curatorEmail.value.trim();
-    let userId = selectedUserId.value;
+    // A shared copy can't be taken back, so confirm the recipient
+    const ok = await confirmDialog(
+        `Share a copy of this PDP with ${u.name || u.email}?`,
+    );
+    if (!ok) return;
     try {
-        if (!userId) {
-            const exact = userOptions.value.find(
-                (u) => (u.email || '').toLowerCase() === email.toLowerCase(),
-            );
-            if (exact) {
-                userId = exact.id;
-            }
-        }
-        if (!userId && email) {
-            const data = await http(
-                '/users.search.json?q=' + encodeURIComponent(email),
-            );
-            const arr = Array.isArray(data) ? data : [];
-            const found = arr.find(
-                (u: any) =>
-                    (u.email || '').toLowerCase() === email.toLowerCase(),
-            );
-            if (found) {
-                userId = found.id;
-            }
-        }
-        if (!userId) {
-            notifyError('Select a user from the dropdown to share');
-            return;
-        }
-
         await http(`/pdps/${selectedPdpId.value}/transfer.json`, {
             method: 'POST',
-            body: JSON.stringify({ user_id: userId }),
+            body: JSON.stringify({ user_id: u.id }),
         });
         notifySuccess('PDP shared. The user will see a copy in their list.');
         curatorEmail.value = '';
-        selectedUserId.value = null;
     } catch (e: any) {
         notifyError('Failed to share: ' + (e?.message || 'Error'));
     }
@@ -1220,7 +1173,6 @@ async function refreshUnseen() {
                         :curators="curators"
                         :curator-email="curatorEmail"
                         :user-options="userOptions"
-                        :show-user-dropdown="showUserDropdown"
                         :unseen-by-criterion="unseenByCriterion"
                         :unseen-totals="unseenTotals"
                         @openEditPdp="openEditPdp"
@@ -1229,14 +1181,10 @@ async function refreshUnseen() {
                         @deleteSkill="deleteSkill"
                         @openProgressModal="openProgressModal"
                         @toggleCriterionDone="toggleCriterionDone"
-                        @selectUserOption="selectUserOption"
                         @assignCurator="assignCurator"
                         @shareToUser="shareToUser"
                         @removeCurator="removeCurator"
                         @update:curatorEmail="(val) => (curatorEmail = val)"
-                        @update:showUserDropdown="
-                            (val) => (showUserDropdown = val)
-                        "
                     />
 
                     <AnnexTab

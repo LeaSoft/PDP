@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { parseCriteriaItems } from '@/utils/criteria';
 import { statusBadgeClass } from '@/utils/status';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 export type Pdp = {
     id: number;
@@ -37,7 +37,6 @@ defineProps<{
     curators: Curator[];
     curatorEmail: string;
     userOptions: Curator[];
-    showUserDropdown: boolean;
     unseenByCriterion?: Record<
         string,
         { ids: number[]; types: Array<'approved' | 'rejected' | 'comment'> }
@@ -52,23 +51,39 @@ const emit = defineEmits<{
     (e: 'deleteSkill', id: number): void;
     (e: 'openProgressModal', s: PdpSkill, index: number): void;
     (e: 'toggleCriterionDone', s: PdpSkill, index: number, done: boolean): void;
-    (e: 'selectUserOption', u: Curator): void;
-    (e: 'assignCurator'): void;
-    (e: 'shareToUser'): void;
+    (e: 'assignCurator', u: Curator): void;
+    (e: 'shareToUser', u: Curator): void;
     (e: 'removeCurator', c: Curator): void;
     (e: 'update:curatorEmail', val: string): void;
-    (e: 'update:showUserDropdown', val: boolean): void;
 }>();
 
-// Click outside to close user dropdown
-const userPickerRef = ref<HTMLElement | null>(null);
-function onDocClick(e: MouseEvent) {
-    const el = userPickerRef.value;
-    if (!el) return;
-    const target = e.target as Node | null;
-    if (target && !el.contains(target)) {
-        emit('update:showUserDropdown', false);
+// "Assign mentor" / "Share PDP" each open a user search; picking a user runs the action
+const picker = ref<'assign' | 'share' | null>(null);
+const pickerRef = ref<HTMLElement | null>(null);
+const searchInput = ref<HTMLInputElement | null>(null);
+
+async function openPicker(kind: 'assign' | 'share') {
+    if (picker.value === kind) {
+        picker.value = null;
+        return;
     }
+    picker.value = kind;
+    emit('update:curatorEmail', '');
+    await nextTick();
+    searchInput.value?.focus();
+}
+
+function pick(u: Curator) {
+    if (picker.value === 'assign') emit('assignCurator', u);
+    if (picker.value === 'share') emit('shareToUser', u);
+    picker.value = null;
+}
+
+// Click outside closes the picker
+function onDocClick(e: MouseEvent) {
+    const el = pickerRef.value;
+    const target = e.target as Node | null;
+    if (el && target && !el.contains(target)) picker.value = null;
 }
 onMounted(() => document.addEventListener('click', onDocClick));
 onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
@@ -165,81 +180,20 @@ function onEmailInput(v: string) {
             class="relative mb-4 min-h-[80px]"
             id="pdp-share"
         >
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div ref="userPickerRef" class="relative w-full sm:max-w-xs">
-                    <input
-                        :value="curatorEmail"
-                        @input="
-                            onEmailInput(
-                                ($event.target as HTMLInputElement).value,
-                            )
-                        "
-                        @focus="
-                            emit(
-                                'update:showUserDropdown',
-                                userOptions.length > 0,
-                            )
-                        "
-                        @blur="
-                            setTimeout(
-                                () => emit('update:showUserDropdown', false),
-                                100,
-                            )
-                        "
-                        @keydown.enter.prevent="
-                            emit('update:showUserDropdown', false)
-                        "
-                        @keydown.esc.prevent="
-                            emit('update:showUserDropdown', false)
-                        "
-                        type="text"
-                        placeholder="Enter mentor email or name"
-                        class="w-full rounded border px-2 py-1 text-sm"
-                        autocomplete="off"
-                        autocapitalize="none"
-                        autocorrect="off"
-                        spellcheck="false"
-                        name="curatorSearch"
-                        inputmode="text"
-                    />
-                    <ul
-                        v-if="showUserDropdown"
-                        class="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-background shadow sm:w-[22rem]"
-                    >
-                        <li
-                            v-for="u in userOptions"
-                            :key="u.id"
-                            class="flex cursor-pointer items-center justify-between px-2 py-1 text-sm hover:bg-muted"
-                            @mousedown.prevent="emit('selectUserOption', u)"
-                        >
-                            <span class="font-medium">{{
-                                u.name || u.email
-                            }}</span>
-                            <span
-                                class="ml-2 text-xs text-muted-foreground"
-                                v-if="u.name"
-                                >{{ u.email }}</span
-                            >
-                        </li>
-                        <li
-                            v-if="!userOptions.length"
-                            class="px-2 py-1 text-xs text-muted-foreground"
-                        >
-                            No matches
-                        </li>
-                    </ul>
-                </div>
-                <div class="flex flex-wrap gap-2 sm:flex-nowrap">
+            <div ref="pickerRef" class="relative">
+                <div class="flex flex-wrap gap-2">
                     <button
                         class="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
-                        @click="emit('assignCurator')"
+                        :aria-expanded="picker === 'assign'"
+                        @click="openPicker('assign')"
                     >
                         Assign mentor
                     </button>
                     <button
                         class="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
-                        title="Share a copy of this PDP to the selected user"
-                        @click="emit('shareToUser')"
+                        title="Share a copy of this PDP with another user"
+                        :aria-expanded="picker === 'share'"
+                        @click="openPicker('share')"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -253,6 +207,63 @@ function onEmailInput(v: string) {
                         </svg>
                         <span>Share PDP</span>
                     </button>
+                </div>
+                <div
+                    v-if="picker"
+                    class="absolute z-50 mt-1 w-full rounded-md border bg-background p-2 shadow sm:w-[22rem]"
+                >
+                    <div class="mb-1 text-xs text-muted-foreground">
+                        {{
+                            picker === 'assign'
+                                ? 'Choose a mentor for this PDP'
+                                : 'Choose who gets a copy of this PDP'
+                        }}
+                    </div>
+                    <input
+                        ref="searchInput"
+                        :value="curatorEmail"
+                        @input="
+                            onEmailInput(
+                                ($event.target as HTMLInputElement).value,
+                            )
+                        "
+                        @keydown.esc.prevent="picker = null"
+                        @keydown.enter.prevent="
+                            userOptions[0] && pick(userOptions[0])
+                        "
+                        type="text"
+                        placeholder="Search by name or email"
+                        aria-label="Search users"
+                        class="w-full rounded border px-2 py-1 text-sm"
+                        autocomplete="off"
+                        autocapitalize="none"
+                        autocorrect="off"
+                        spellcheck="false"
+                    />
+                    <ul class="mt-1 max-h-56 overflow-auto">
+                        <li v-for="u in userOptions" :key="u.id">
+                            <button
+                                type="button"
+                                class="flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm hover:bg-muted"
+                                @click="pick(u)"
+                            >
+                                <span class="font-medium">{{
+                                    u.name || u.email
+                                }}</span>
+                                <span
+                                    v-if="u.name"
+                                    class="ml-2 text-xs text-muted-foreground"
+                                    >{{ u.email }}</span
+                                >
+                            </button>
+                        </li>
+                        <li
+                            v-if="!userOptions.length"
+                            class="px-2 py-1 text-xs text-muted-foreground"
+                        >
+                            No matches
+                        </li>
+                    </ul>
                 </div>
             </div>
             <div v-if="curators.length" class="mt-2 flex flex-wrap gap-2">
