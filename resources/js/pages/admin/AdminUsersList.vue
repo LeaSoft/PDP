@@ -3,7 +3,8 @@ import AdminTable from '@/components/admin/AdminTable.vue';
 import { notifyError, notifySuccess } from '@/composables/useNotify';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { fetchJson } from '@/lib/csrf';
-import { router } from '@inertiajs/vue3';
+import type { AppPageProps } from '@/types';
+import { router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
 
 type Row = {
@@ -12,9 +13,13 @@ type Row = {
     email: string;
     pro_level_key: string | null;
     current_level_key: string | null;
+    super_admin: boolean;
+    is_moderator: boolean;
     last_activity_at: string | null;
     pdp_count: number;
 };
+
+type Role = 'super_admin' | 'is_moderator';
 
 type ProLevel = {
     key: string;
@@ -31,6 +36,8 @@ const perPage = ref(20);
 const sortBy = ref('last_activity_at');
 const sortDir = ref<'asc' | 'desc'>('desc');
 const changingLevelFor = ref<number | null>(null);
+const changingRolesFor = ref<number | null>(null);
+const currentUserId = usePage<AppPageProps>().props.auth.user.id;
 
 const activeLastDays = ref<number | null>(
     new URLSearchParams(location.search).get('active_last_days')
@@ -44,6 +51,7 @@ const columns = [
     { key: 'pro_level_key', label: 'Start Level' },
     { key: 'current_level_key', label: 'Current Level' },
     { key: 'actions', label: 'Actions', width: '190px' },
+    { key: 'roles', label: 'Roles' },
     { key: 'last_activity_at', label: 'Last Activity', sortable: true },
     { key: 'pdp_count', label: 'PDPs', sortable: true },
 ];
@@ -128,6 +136,24 @@ async function setUserLevel(row: Row, levelKey: string) {
         await load();
     } finally {
         changingLevelFor.value = null;
+    }
+}
+
+async function setRole(row: Row, role: Role, value: boolean) {
+    changingRolesFor.value = row.user_id;
+    try {
+        const res = await fetchJson(`/admin/users/${row.user_id}/roles.json`, {
+            method: 'PUT',
+            body: JSON.stringify({ [role]: value }),
+        });
+        row.super_admin = Boolean(res?.super_admin);
+        row.is_moderator = Boolean(res?.is_moderator);
+        notifySuccess(`Roles for ${row.name} updated`);
+    } catch (e: any) {
+        notifyError(e?.message || 'Failed to update roles');
+        await load();
+    } finally {
+        changingRolesFor.value = null;
     }
 }
 
@@ -225,6 +251,43 @@ onMounted(() => {
                         {{ lvl.title }}
                     </option>
                 </select>
+            </template>
+            <template #cell:roles="{ row }">
+                <div class="flex flex-col gap-1 text-xs">
+                    <label class="flex items-center gap-1">
+                        <input
+                            type="checkbox"
+                            :checked="row.super_admin"
+                            :disabled="
+                                changingRolesFor === row.user_id ||
+                                row.user_id === currentUserId
+                            "
+                            @change="
+                                setRole(
+                                    row,
+                                    'super_admin',
+                                    ($event.target as HTMLInputElement).checked,
+                                )
+                            "
+                        />
+                        Admin
+                    </label>
+                    <label class="flex items-center gap-1">
+                        <input
+                            type="checkbox"
+                            :checked="row.is_moderator"
+                            :disabled="changingRolesFor === row.user_id"
+                            @change="
+                                setRole(
+                                    row,
+                                    'is_moderator',
+                                    ($event.target as HTMLInputElement).checked,
+                                )
+                            "
+                        />
+                        Moderator
+                    </label>
+                </div>
             </template>
         </AdminTable>
     </AdminLayout>

@@ -148,5 +148,6 @@ Route::prefix('admin')
         Route::get('/curators.json', [AdminCuratorsController::class, 'index']);
         Route::post('/curators/{user}/nudge.json', [AdminCuratorsController::class, 'nudge'])->whereNumber('user');
         Route::get('/users.json', [AdminUsersController::class, 'index']);
+        Route::put('/users/{user}/roles.json', [AdminUsersController::class, 'updateRoles'])->whereNumber('user');
         Route::get('/pdps.json', [AdminPdpsController::class, 'index']);
     });

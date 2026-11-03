@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminActionLog;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 class AdminUsersController extends Controller
@@ -10,7 +13,7 @@ class AdminUsersController extends Controller
     /**
      * GET /admin/users.json — list users with activity metrics
      * Filter: active_last_days (int)
-     * Fields: user_id, name, email, pro_level_key, current_level_key, last_activity_at, pdp_count
+     * Fields: user_id, name, email, pro_level_key, current_level_key, super_admin, is_moderator, last_activity_at, pdp_count
      */
     public function index(Request $request)
     {
@@ -30,6 +33,8 @@ class AdminUsersController extends Controller
                 'u.email',
                 'u.pro_level_key',
                 'u.current_level_key',
+                'u.super_admin',
+                'u.is_moderator',
                 DB::raw('(SELECT MAX(p.created_at) FROM pdp_skill_criterion_progress p WHERE p.user_id = u.id) as last_activity_at'),
                 DB::raw('(SELECT COUNT(*) FROM pdps d WHERE d.user_id = u.id) as pdp_count'),
             ]);
@@ -66,6 +71,8 @@ class AdminUsersController extends Controller
                     'email' => (string)$r->email,
                     'pro_level_key' => $r->pro_level_key !== null ? (string)$r->pro_level_key : null,
                     'current_level_key' => $r->current_level_key !== null ? (string)$r->current_level_key : null,
+                    'super_admin' => (bool)$r->super_admin,
+                    'is_moderator' => (bool)$r->is_moderator,
                     'last_activity_at' => $r->last_activity_at,
                     'pdp_count' => (int)$r->pdp_count,
                 ];
@@ -78,6 +85,38 @@ class AdminUsersController extends Controller
                 'page' => $page,
                 'per_page' => $perPage,
             ],
+        ]);
+    }
+
+    /**
+     * PUT /admin/users/{user}/roles.json — grant or revoke super_admin / is_moderator, logged as admin action
+     */
+    public function updateRoles(Request $request, User $user)
+    {
+        $roles = $request->validate([
+            'super_admin' => ['sometimes', 'boolean'],
+            'is_moderator' => ['sometimes', 'boolean'],
+        ]);
+
+        // An admin can't drop their own admin role, so there is always at least one admin left
+        if ($user->is($request->user()) && array_key_exists('super_admin', $roles) && ! $roles['super_admin']) {
+            return response()->json(['message' => 'You cannot remove your own admin role'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $user->forceFill($roles)->save();
+
+        AdminActionLog::create([
+            'admin_user_id' => (int)$request->user()->id,
+            'action' => 'update_user_roles',
+            'target_type' => 'user',
+            'target_id' => (int)$user->id,
+            'meta' => $roles,
+        ]);
+
+        return response()->json([
+            'user_id' => (int)$user->id,
+            'super_admin' => (bool)$user->super_admin,
+            'is_moderator' => (bool)$user->is_moderator,
         ]);
     }
 }
