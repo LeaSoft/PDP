@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import RegisteredUserController from '@/actions/App/Http/Controllers/Auth/RegisteredUserController';
+import GoogleSignInButton from '@/components/GoogleSignInButton.vue';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -7,8 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { login } from '@/routes';
-import { Form, Head } from '@inertiajs/vue3';
+import type { AppPageProps } from '@/types';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
+
+const page = usePage<AppPageProps>();
 </script>
 
 <template>
@@ -17,6 +21,21 @@ import { LoaderCircle } from 'lucide-vue-next';
         description="Enter your details below to create your account"
     >
         <Head title="Register" />
+
+        <div
+            v-if="page.props.authFeatures.googleLogin"
+            class="flex flex-col gap-6"
+        >
+            <GoogleSignInButton />
+
+            <div
+                class="flex items-center gap-3 text-xs text-muted-foreground uppercase"
+            >
+                <span class="h-px flex-1 bg-border" />
+                or
+                <span class="h-px flex-1 bg-border" />
+            </div>
+        </div>
 
         <Form
             v-bind="RegisteredUserController.store.form()"

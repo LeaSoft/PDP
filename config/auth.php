@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+
 return [
 
     /*
@@ -62,7 +64,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => env('AUTH_MODEL', User::class),
         ],
 
         // 'users' => [
@@ -111,5 +113,34 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Password Login
+    |--------------------------------------------------------------------------
+    |
+    | When false, the app is Google-only: password login, registration,
+    | password reset and the password settings page are switched off.
+    | Setting it back to true is the rollback / emergency way in.
+    |
+    */
+
+    'password_login' => (bool) env('AUTH_PASSWORD_LOGIN', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Company Email Domains
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated domains that count as company addresses. Used by
+    | registration, profile email changes and Google sign-in (where the
+    | Google Workspace "hd" claim must also be one of these domains).
+    |
+    */
+
+    'company_email_domains' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', strtolower((string) env('COMPANY_EMAIL_DOMAINS', 'leasoft.org')))
+    ))),
 
 ];
