@@ -6,14 +6,14 @@ import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
-import ProfessionalLevelBadge from '@/components/ProfessionalLevelBadge.vue';
 import InputError from '@/components/InputError.vue';
+import ProfessionalLevelBadge from '@/components/ProfessionalLevelBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type AppPageProps, type BreadcrumbItem } from '@/types';
 
 interface Props {
     mustVerifyEmail: boolean;
@@ -29,8 +29,11 @@ const breadcrumbItems: BreadcrumbItem[] = [
     },
 ];
 
-const page = usePage();
+const page = usePage<AppPageProps>();
 const user = page.props.auth.user;
+const googleLinked = page.props.auth.googleLinked;
+// Deleting the account asks for the current password, which Google-only users don't have
+const canDeleteAccount = page.props.authFeatures.passwordLogin;
 </script>
 
 <template>
@@ -44,7 +47,9 @@ const user = page.props.auth.user;
                         title="Profile information"
                         description="Update your name and email address"
                     />
-                    <div class="hidden sm:block"><ProfessionalLevelBadge /></div>
+                    <div class="hidden sm:block">
+                        <ProfessionalLevelBadge />
+                    </div>
                 </div>
 
                 <Form
@@ -74,10 +79,17 @@ const user = page.props.auth.user;
                             class="mt-1 block w-full"
                             name="email"
                             :default-value="user.email"
+                            :readonly="googleLinked"
                             required
                             autocomplete="username"
                             placeholder="Email address"
                         />
+                        <p
+                            v-if="googleLinked"
+                            class="text-sm text-muted-foreground"
+                        >
+                            Your email comes from your Google account.
+                        </p>
                         <InputError class="mt-2" :message="errors.email" />
                     </div>
 
@@ -126,7 +138,7 @@ const user = page.props.auth.user;
                 </Form>
             </div>
 
-            <DeleteUser />
+            <DeleteUser v-if="canDeleteAccount" />
         </SettingsLayout>
     </AppLayout>
 </template>

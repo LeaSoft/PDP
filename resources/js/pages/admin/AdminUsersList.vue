@@ -15,6 +15,7 @@ type Row = {
     current_level_key: string | null;
     super_admin: boolean;
     is_moderator: boolean;
+    google_linked: boolean;
     last_activity_at: string | null;
     pdp_count: number;
 };
@@ -48,6 +49,7 @@ const activeLastDays = ref<number | null>(
 const columns = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'email', label: 'Email', sortable: true },
+    { key: 'google_linked', label: 'Google' },
     { key: 'pro_level_key', label: 'Start Level' },
     { key: 'current_level_key', label: 'Current Level' },
     { key: 'actions', label: 'Actions', width: '190px' },
@@ -218,6 +220,21 @@ onMounted(() => {
                         ? new Date(row.last_activity_at).toLocaleString()
                         : '—'
                 }}</span>
+            </template>
+            <template #cell:google_linked="{ row }">
+                <span
+                    :title="
+                        row.google_linked
+                            ? 'Has signed in with Google'
+                            : 'Has not signed in with Google yet'
+                    "
+                    :class="
+                        row.google_linked
+                            ? 'text-green-600'
+                            : 'text-muted-foreground'
+                    "
+                    >{{ row.google_linked ? '✓' : '—' }}</span
+                >
             </template>
             <template #cell:pro_level_key="{ row }">
                 <span>{{ levelLabel(row.pro_level_key) }}</span>

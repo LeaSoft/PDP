@@ -6,28 +6,26 @@ import { toUrl, urlIsActive } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editPassword } from '@/routes/password';
 import { edit as editProfile } from '@/routes/profile';
-import { show } from '@/routes/two-factor';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
+import { type AppPageProps, type NavItem } from '@/types';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
-const sidebarNavItems: NavItem[] = [
+const page = usePage<AppPageProps>();
+
+// Two-factor auth is switched off; the password page exists only while password login is on
+const sidebarNavItems = computed<NavItem[]>(() => [
     {
         title: 'Profile',
         href: editProfile(),
     },
-    {
-        title: 'Password',
-        href: editPassword(),
-    },
-    {
-        title: 'Two-Factor Auth',
-        href: show(),
-    },
+    ...(page.props.authFeatures.passwordLogin
+        ? [{ title: 'Password', href: editPassword() }]
+        : []),
     {
         title: 'Appearance',
         href: editAppearance(),
     },
-];
+]);
 
 const currentPath = typeof window !== undefined ? window.location.pathname : '';
 </script>

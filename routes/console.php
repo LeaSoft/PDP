@@ -9,19 +9,40 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Run once when switching to Google-only (AUTH_PASSWORD_LOGIN=false): old sessions and
+// remember-me cookies keep working otherwise, including for people who have left.
+Artisan::command('pdp:logout-everyone {--force}', function () {
+    if (! $this->option('force') && ! $this->confirm('Sign everyone out (delete all sessions and remember-me tokens)?')) {
+        $this->warn('Aborted.');
+
+        return 1;
+    }
+
+    $sessions = Schema::hasTable(config('session.table', 'sessions'))
+        ? DB::table(config('session.table', 'sessions'))->delete()
+        : 0;
+    $tokens = DB::table('users')->whereNotNull('remember_token')->update(['remember_token' => null]);
+
+    $this->info("Deleted {$sessions} sessions and cleared {$tokens} remember-me tokens.");
+
+    return 0;
+})->purpose('Sign every user out: delete all sessions and remember-me tokens');
+
 Artisan::command('migrate:sqlite-to-mysql {--force} {--tables=*}', function () {
     $default = DB::getDefaultConnection();
     if ($default !== 'mysql') {
         $this->error("Default DB connection is '$default'. Please set DB_CONNECTION=mysql in your .env and try again.");
+
         return 1;
     }
 
     $sqliteConn = 'sqlite_old';
     try {
         DB::connection($sqliteConn)->getPdo();
-    } catch (\Throwable $e) {
-        $this->error("Cannot connect to '$sqliteConn': " . $e->getMessage());
-        $this->line("Ensure SQLITE_OLD_DATABASE in .env points to your old SQLite file (e.g., database/database.sqlite).");
+    } catch (Throwable $e) {
+        $this->error("Cannot connect to '$sqliteConn': ".$e->getMessage());
+        $this->line('Ensure SQLITE_OLD_DATABASE in .env points to your old SQLite file (e.g., database/database.sqlite).');
+
         return 1;
     }
 
@@ -30,21 +51,25 @@ Artisan::command('migrate:sqlite-to-mysql {--force} {--tables=*}', function () {
     // Fetch list of tables from SQLite
     $tables = collect(DB::connection($sqliteConn)->select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
         ->pluck('name')
-        ->reject(function ($t) { return in_array($t, ['migrations']); });
+        ->reject(function ($t) {
+            return in_array($t, ['migrations']);
+        });
 
-    if (!empty($tablesOption)) {
+    if (! empty($tablesOption)) {
         $tables = $tables->intersect($tablesOption);
     }
 
     if ($tables->isEmpty()) {
         $this->warn('No tables found to migrate.');
+
         return 0;
     }
 
-    $this->info('Tables to migrate: ' . $tables->implode(', '));
+    $this->info('Tables to migrate: '.$tables->implode(', '));
 
-    if (!$this->option('force') && !$this->confirm('This will TRUNCATE the corresponding MySQL tables before copying. Continue?')) {
+    if (! $this->option('force') && ! $this->confirm('This will TRUNCATE the corresponding MySQL tables before copying. Continue?')) {
         $this->warn('Aborted.');
+
         return 1;
     }
 
@@ -53,8 +78,9 @@ Artisan::command('migrate:sqlite-to-mysql {--force} {--tables=*}', function () {
 
     $totalInserted = 0;
     foreach ($tables as $table) {
-        if (!Schema::hasTable($table)) {
+        if (! Schema::hasTable($table)) {
             $this->warn("[Skip] MySQL table '$table' does not exist. Run migrations first.");
+
             continue;
         }
 
@@ -73,7 +99,7 @@ Artisan::command('migrate:sqlite-to-mysql {--force} {--tables=*}', function () {
             foreach ($rows as $row) {
                 $batch[] = (array) $row; // preserve IDs and columns as-is
             }
-            if (!empty($batch)) {
+            if (! empty($batch)) {
                 DB::table($table)->insert($batch);
                 $inserted += count($batch);
                 $bar->advance(count($batch));

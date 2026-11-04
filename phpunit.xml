@@ -29,5 +29,11 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!-- Fixed auth setup, so a local .env with Google keys or AUTH_PASSWORD_LOGIN=false doesn't change the tests -->
+        <env name="AUTH_PASSWORD_LOGIN" value="true"/>
+        <env name="COMPANY_EMAIL_DOMAINS" value="leasoft.org"/>
+        <env name="GOOGLE_CLIENT_ID" value=""/>
+        <env name="GOOGLE_CLIENT_SECRET" value=""/>
+        <env name="GOOGLE_REDIRECT_URI" value=""/>
     </php>
 </phpunit>

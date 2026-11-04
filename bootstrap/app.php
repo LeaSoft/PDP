@@ -1,9 +1,10 @@
 <?php
 
+use App\Http\Middleware\EnsureDatabaseIsMigrated;
+use App\Http\Middleware\EnsurePasswordLoginEnabled;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\EnsureDatabaseIsMigrated;
-use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register route middleware aliases
         $middleware->alias([
             'super_admin' => EnsureSuperAdmin::class,
+            'password.login' => EnsurePasswordLoginEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

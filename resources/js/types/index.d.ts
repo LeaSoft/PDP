@@ -3,6 +3,12 @@ import type { LucideIcon } from 'lucide-vue-next';
 
 export interface Auth {
     user: User;
+    googleLinked: boolean;
+}
+
+export interface AuthFeatures {
+    passwordLogin: boolean;
+    googleLogin: boolean;
 }
 
 export interface BreadcrumbItem {
@@ -24,6 +30,7 @@ export type AppPageProps<
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    authFeatures: AuthFeatures;
     sidebarOpen: boolean;
 };
 
