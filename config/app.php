@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Version
+    |--------------------------------------------------------------------------
+    |
+    | The deployed commit. docker-compose.prod.yaml sets APP_VERSION from the
+    | image tag on each deploy, and /api/health reports it, so the deploy job
+    | and the DevOps platform can tell which version is live.
+    |
+    */
+
+    'version' => env('APP_VERSION'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

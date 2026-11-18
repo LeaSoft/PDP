@@ -38,13 +38,16 @@ services:
       # Point to the internal Traefik API service
       - "traefik.http.routers.traefik.service=api@internal"
 
+  # The deploy sets IMAGE_TAG to the commit, so php and nginx come from the same
+  # build and /api/health names it; without it both fall back to latest
   php:
-    image: ghcr.io/leasoft/pdp-php:latest
+    image: ghcr.io/leasoft/pdp-php:${IMAGE_TAG:-latest}
     restart: unless-stopped
     user: "1000:1000"
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
+      APP_VERSION: ${IMAGE_TAG:-unknown}
     networks:
       - app
     depends_on:
@@ -55,7 +58,7 @@ services:
       - ./.env:/var/www/html/.env:ro
 
   nginx:
-    image: ghcr.io/leasoft/pdp-nginx:latest
+    image: ghcr.io/leasoft/pdp-nginx:${IMAGE_TAG:-latest}
     restart: unless-stopped
     networks:
       - web

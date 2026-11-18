@@ -3,19 +3,83 @@ name: 🚀 PDP | Deployment & Security
 on:
   push:
     branches: [ main ]
+  # Pull requests run the tests only; nothing is built or deployed from them
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
+# A newer push to a pull request cancels its older run; on main a deploy that has
+# started always finishes, and only the newest waiting one runs after it
 concurrency:
-  group: deployment-main
-  cancel-in-progress: true
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
+  test:
+    name: 🧪 App | PHPUnit
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: 📥 Repo | Checkout
+        uses: actions/checkout@v5
+
+      - name: 🐘 PHP | Set up 8.5 (as in the image)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: bcmath, exif, gd, mbstring, pdo_sqlite, zip
+          coverage: none
+
+      - name: 📦 Composer | Find the cache
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: 📦 Composer | Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      # Advisories are Trivy's and Dependabot's job; a new one must not stop the tests
+      - name: 📦 Composer | Install
+        env:
+          COMPOSER_POLICY_ADVISORIES_BLOCK: "0"
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: 🟢 Node | Set up 20 (as in the image)
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: 📦 npm | Install
+        run: npm ci --no-audit --no-fund
+
+      - name: 🔑 Laravel | Prepare .env and key
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      # Pages render with @vite, so the suite needs the manifest; Wayfinder calls artisan here
+      - name: 🎨 Assets | Build
+        run: npm run build
+
+      # phpunit.xml gives the suite SQLite in memory over the .env values
+      - name: 🧪 PHPUnit | Run the suite
+        run: vendor/bin/phpunit
+
   build:
     name: 🐳 Images | Build & push (${{ matrix.id }})
     runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
 
     strategy:
       matrix:
@@ -114,6 +178,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://pdp.leasoft.co
 
     steps:
       - name: 🔐 SSH | Deploy to PROD
@@ -149,6 +216,25 @@ jobs:
             docker image prune -f
 
             echo "✅ Prod | Deployment finished"
+
+      # Green only once the new php container answers with this commit and a live database
+      - name: 🩺 Health | Wait for this version on /api/health
+        env:
+          HEALTH_URL: https://pdp.leasoft.co/api/health
+        run: |
+          for attempt in $(seq 1 24); do
+            body="$(curl -sS --max-time 10 "$HEALTH_URL" || true)"
+            if printf '%s' "$body" | grep -q '"status":"ok"' \
+              && printf '%s' "$body" | grep -q "\"version\":\"${GITHUB_SHA}\""; then
+              echo "🩺 $body" >> "$GITHUB_STEP_SUMMARY"
+              echo "✅ Prod | Healthy on ${GITHUB_SHA}"
+              exit 0
+            fi
+            echo "⏳ Health | Attempt ${attempt}/24, not healthy on this commit yet"
+            sleep 5
+          done
+          echo "❌ Prod | /api/health did not report ${GITHUB_SHA} as healthy: ${body}"
+          exit 1
 
   cleanup:
     name: 🧹 Registry | Cleanup GHCR (keep last 10)
