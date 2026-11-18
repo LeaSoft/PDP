@@ -73,6 +73,31 @@ Visit:
 
 ---
 
+## 🚢 Deployment
+
+`.github/workflows/deployment.yaml` runs on every push to `main`:
+
+1. **🧪 App | PHPUnit** builds the assets and runs the suite (SQLite in memory). Pull requests run only this job, so a red test is seen before the merge.
+2. **🐳 Images** build `pdp-php` and `pdp-nginx`, tagged with the commit SHA and `latest`. Nothing is built when the tests fail.
+3. **🚢 Prod** connects over SSH, resets `/pdp/PDP` to `origin/main` and starts both images with `IMAGE_TAG` set to that SHA. The php container gets the same value as `APP_VERSION`.
+4. **🩺 Health** waits up to two minutes until `https://pdp.leasoft.co/api/health` answers `"status":"ok"` with this commit as its `version`. Otherwise the deploy is red.
+
+The deploy does not run migrations. After a merge that adds one, run it by hand (see [docs/runbook.md](docs/runbook.md)).
+
+## 🩺 Monitoring
+
+`GET /api/health` is public and holds nothing sensitive:
+
+```json
+{"status":"ok","checks":{"database":"ok"},"version":"<commit SHA>","timestamp":"2026-11-18T09:00:00Z"}
+```
+
+It answers `503` with `"status":"degraded"` and `"database":"error"` when MySQL does not respond. The reason goes to the Laravel log only. The route sits outside the `web` group, so the checks start no sessions and set no cookies. Laravel's own `/up` stays as it was.
+
+The DevOps platform (`devops.leasoft.co`) checks this route every minute. What to do when it raises an alert is in [docs/runbook.md](docs/runbook.md).
+
+---
+
 ## 🔐 CSRF + Sanctum (коли фронтенд на іншому домені)
 
 Щоб уникнути помилки "CSRF token mismatch" у випадку, коли фронтенд (Vite build) розміщений на іншому домені/субдомені, налаштуйте наступне:
