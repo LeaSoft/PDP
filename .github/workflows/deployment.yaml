@@ -212,7 +212,14 @@ jobs:
             echo "🚀 Compose | Restart services..."
             docker compose -f docker-compose.prod.yaml up -d
 
-            echo "🧹 Docker | Prune old images..."
+            # Images are tagged per commit, so `prune` alone never removes them and they
+            # pile up on the shared host. GHCR keeps the last 10 for a rollback.
+            echo "🧹 Docker | Remove older PDP images..."
+            for repo in ghcr.io/leasoft/pdp-php ghcr.io/leasoft/pdp-nginx; do
+              docker images "$repo" --format '{{.Tag}}' \
+                | grep -vx -e "$IMAGE_TAG" \
+                | xargs -r -I{} docker rmi "$repo:{}" > /dev/null || true
+            done
             docker image prune -f
 
             echo "✅ Prod | Deployment finished"

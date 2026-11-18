@@ -8,6 +8,10 @@ what to do when the fix does not work.
 - **Severity:** SEV3: an internal tool; people cannot open or update their development plans
 - **Owner:** the PDP maintainers; the DevOps team for the server
 
+The host is shared with other LeaSoft projects, and **the Traefik in this stack serves
+them too** (GPS joins its `pdp_web` network). `$COMPOSE down`, or anything that stops
+`traefik`, takes those sites down with PDP; restart single services instead.
+
 On the server everything runs from the checkout the deploy resets to `main`,
 with the `.env` that lives there (it is not in Git, and a deploy leaves it alone):
 
@@ -68,7 +72,8 @@ sign-in or on the PDP list. `/api/health` names what is missing:
 - A stopped container: `$COMPOSE up -d` (with `IMAGE_TAG` set as above).
 - MySQL not answering: `$COMPOSE restart mysql`, then ask `/api/health` again.
   A full disk stops MySQL first: free space (`docker image prune -f`, old logs)
-  before the restart.
+  before the restart. Never `docker system prune -a` or `docker volume prune`: the
+  host is shared, and they reach the other projects' images and data too.
 - Errors right after a deploy that added a migration: the deploy does not run
   migrations, so run them:
 
